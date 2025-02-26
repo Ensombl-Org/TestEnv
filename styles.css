@@ -1,0 +1,411 @@
+/****styles.css BACKUP****/
+/* ===========================
+   🌐 General Styles
+=========================== */
+:root {
+  /* Primary colors - change these to update your overall background colors */
+  --primary-bg-color: #f8f9fa;  /*** Change this to set the body and hero background color ***/
+  --secondary-bg-color: #f8f9fa; /*** Change if needed for secondary backgrounds ***/
+
+  /* Text colors */
+  --primary-text-color: #333;    /*** Primary text color ***/
+  --secondary-text-color: #555;  /*** Secondary text color ***/
+
+  /* Link color */
+  --link-color: #007bff;         /*** Change the color of links if desired ***/
+
+  /* Chat bubbles */
+  --user-message-bg: #e5e3da;     /*** Change user message bubble background ***/
+  --bot-message-bg: #ffffff;      /*** Change bot message bubble background ***/
+
+  /* Shadow for chat bubbles */
+  --chat-bubble-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /*** Adjust shadow if desired ***/
+}
+
+body {
+  background-color: #f8f9fa !important;  /*** Main body background color ***/
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  color: var(--primary-text-color);
+  margin: 0;
+  padding: 0;
+}
+
+/* ===========================
+   🌐 Headings
+=========================== */
+h1 {
+  font-family: 'Roboto', sans-serif;
+  color: #2b2b2b; /*** Change heading color if desired ***/
+}
+
+/* ===========================
+   🌐 Top Nav (Header)
+=========================== */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;  /*** Adjust padding for the top navigation ***/
+  background-color: var(--primary-bg-color); /*** Top nav background (white by default) ***/
+  width: 100%;
+  box-shadow: none !important; /*** Remove shadow; add one if desired ***/
+}
+
+.brand-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 180px;  /*** Change logo size here ***/
+  height: auto;
+  /* Ensure your logo image is transparent to avoid an unwanted white box */
+}
+
+.btn.new-cpd {
+  background-color: #2e7aff; /*** Button background color ***/
+  color: #fff;              /*** Button text color ***/
+  border: none;
+  padding: 10px 25px;       /*** Adjust button padding if desired | Adjust padding for a more elongated shape ***/
+  border-radius: 50px;    /*** This creates the capsule shape ***/
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn.new-cpd:hover {
+  background-color: #2364cc; /*** Hover background color ***/
+}
+
+/* ===========================
+   🌐 Hero Section
+=========================== */
+.hero-section {
+  text-align: center;  /*** Centers inline elements: <h1>, <img>, <p> ***/
+  background-color: var(--primary-bg-color) !important; /*** Hero background color (white) ***/
+  padding: 60px 20px;  /*** Adjust padding for hero section ***/
+}
+
+.hero-icon {
+  display: block;           /*** Makes the icon block-level for centering ***/
+  margin: 0 auto 20px;      /*** Centers the icon and adds bottom margin ***/
+  width: 80px;              /*** Adjust size of the hero icon ***/
+  height: auto;
+}
+
+.hero-title {
+  font-size: 2.5rem;        /*** Main heading size; change as needed ***/
+  color: #2b2b2b;           /*** Main heading color ***/
+  margin-bottom: 10px;      /*** Spacing below heading ***/
+  text-align: center !important; /*** Force center alignment ***/
+}
+
+.hero-subtitle {
+  text-align: center;  /* Ensures both lines are centered */
+  max-width: 600px;    /* Optional: limit line width */
+  margin: 0 auto;      /* Center the paragraph block */
+  line-height: 1.5;
+  color: #555;
+}
+
+/* ===========================
+   🎨 Custom Font Face
+=========================== */
+@font-face {
+  font-family: 'Gilroy ExtraBold';
+  src: url('https://nexgenstorage.blob.core.windows.net/$web/Resources/Font/GilroyExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+/* ===========================
+   🔤 CPD Heading Style
+=========================== */
+.cpd-heading {
+  font-family: 'Gilroy ExtraBold', sans-serif;
+  color: #2b2b2b !important;
+  font-size: 2rem;
+  margin: 0;
+  font-weight: 800;
+}
+
+/* ===========================
+   Example Custom Button Classes
+=========================== */
+
+/* Blue button for "New Chat" */
+.btn-new-chat {
+  background-color: #2e7aff; 
+  color: #ffffff;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-new-chat:hover {
+  background-color: #3498db;
+}
+
+/* Dark gray button for "Video/Audio" upload */
+.btn-upload-audio {
+  background-color: #203649;
+  color: #ffffff;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-upload-audio:hover {
+  background-color: #444444;
+}
+
+/* Blue-gray button for "Written Content" upload */
+.btn-upload-written {
+  background-color: #405e79;
+  color: #ffffff;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-upload-written:hover {
+  background-color: #5e7489;
+}
+
+/* Beige button for "Upcoming Presentation" upload */
+.btn-upload-presentation {
+  background-color: #e5e3da;
+  color: #000000;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-upload-presentation:hover {
+  background-color: #b8ac92;
+}
+
+
+/* ===========================
+   Cards Container
+=========================== */
+.cards-container {
+  display: flex;
+  justify-content: center;  /* centers the cards horizontally */
+  gap: 20px;                /* space between cards */
+  flex-wrap: wrap;          /* wrap on smaller screens */
+  margin-top: 40px;         /* space above the container */
+}
+
+/* Individual card style */
+.upload-card {
+  background-color: #ffffff;
+  width: 220px;
+  padding: 20px;
+  border-radius: 8px;
+  /* Remove or override any center alignment here */
+  text-align: left; /* Align text to the left */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  cursor: pointer;         /* Cursor pointer for the entire label */
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.upload-card:hover {
+  background-color: #81818171; /* Change this to your desired hover color */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* bigger shadow on hover */
+}
+
+.upload-card h3,
+.upload-card p {
+  margin: 0 0 5px; /* Basic spacing */
+}
+
+/* Logo/icon styling inside the card */
+.card-icon {
+  width: 80px;         /* Same width and height => a square */
+  height: 80px;        /* Force the image to be square */
+  object-fit: cover;   /* Ensures image scales/crops properly */
+  border-radius: 15px; /* Adjust radius for more/less roundness */
+  margin-bottom: 10px;
+}
+
+
+/* Card heading */
+.upload-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+  color: #2b2b2b;
+}
+
+/* Card description text */
+.upload-card p {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+
+/* ===========================
+   💬 Chat Area Styles
+=========================== */
+#chat-area {
+  background-color: var(--secondary-bg-color); /*** Chat area background (white) ***/
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;  /*** Chat area border ***/
+  height: 400px;           /*** Adjust height as needed ***/
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chat bubbles */
+.chat-bubble {
+  margin-bottom: 10px;
+  padding: 10px 15px;
+  border-radius: 10px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.5;
+  box-shadow: var(--chat-bubble-shadow); /*** Change shadow if desired ***/
+}
+
+/* User Message Bubble */
+.user-message {
+  background-color: var(--user-message-bg);
+  color: #2b2b2b;
+  text-align: right;
+  align-self: flex-end;
+  max-width: 70%;
+  padding: 10px 15px;
+  border-radius: 10px;
+  margin: 5px 0;
+  clear: both;
+  float: right;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Bot Message Bubble */
+.bot-message {
+  background-color: var(--bot-message-bg);
+  color: #212529;
+  text-align: left;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 10px 15px;
+  border-radius: 10px;
+  margin: 5px 0;
+  clear: both;
+  float: left;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* ===========================
+   📊 Progress Bar Styles
+=========================== */
+.progress-container {
+  margin: 10px 0;  /*** Change spacing around the progress bar if needed ***/
+}
+
+.progress-bar {
+  height: 20px;
+  background-color: #2e7aff; /*** Change progress bar color if desired ***/
+  width: 0%;
+  transition: width 1s linear;
+}
+
+/* ===========================
+   📜 Transcription Display Styles
+=========================== */
+#transcription-display {
+  background-color: #fff;  /*** Transcription background (white) ***/
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* ===========================
+   📱 Responsive Layout for Small Screens
+=========================== */
+@media (max-width: 768px) {
+  #chat-area {
+    height: 300px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .btn {
+    font-size: 0.9rem;
+  }
+}
+
+/* ===========================
+   🔲 Utility Classes for Layout
+=========================== */
+.chat-bubble::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.chat-bubble {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Input group for message box and send button */
+.message-input {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between the textarea and button */
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* Message input container */
+.message-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: #f8f9fa; /* Match the background of the chat area */
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional shadow for better visibility */
+  margin: 0 auto;
+  max-width: 800px; /* Adjust as needed */
+  width: 100%;
+  gap: 10px; /* Space between textarea and button */
+}
+
+/* Textarea styling */
+#message-box {
+  flex: 1; /* Allows textarea to take most space */
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-color: #f1f3f5; /* Light background like the chatbox */
+  font-size: 14px;
+  resize: none; /* Prevent resizing */
+  height: 50px; /* Adjust height as needed */
+  outline: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Send button styling */
+.send-button {
+  background-color: #207AFE;
+  color: white;
+  border: none;
+  padding: 10px 28px;
+  border-radius: 50px; /* Capsule shape */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 14px;
+  white-space: nowrap; /* Prevent wrapping */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.send-button:hover {
+  background-color: #0056B3;
+}
