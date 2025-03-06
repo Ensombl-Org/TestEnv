@@ -1,16 +1,20 @@
-//script.js backup
-// Variables
+//Jid Espenorio - Ensombl
+//Updated 28/02/2025
+//Variables v1.6
+
 let userName = ""; // Store user's name
 let chatHistory = []; // Store conversation context
 const apiKey = "F5TTEZU13jwfovrhBsfw5c1yqu8yL2iUDXHavU1YUA1WM13QUtsZJQQJ99BBACL93NaXJ3w3AAABACOGijkq"; // Azure OpenAI API key
 const apiUrl = "https://testingenvnexgen.openai.azure.com/openai/deployments/gpt-4TestEnv/chat/completions?api-version=2024-08-01-preview"; // Azure OpenAI endpoint
 const storageAccountUrl = "https://storagetestnexgen.blob.core.windows.net"; // Azure Blob Storage URL
-const sasToken = "?sv=2022-11-02&ss=b&srt=sco&sp=rwdlactfx&se=2026-02-24T09:26:01Z&st=2025-02-24T01:26:01Z&spr=https&sig=2EsAZHvLzm4K4VjwH0whYtMaVovtjpXqWMbcD8Kj%2FqE%3D"; // SAS token for uploads
+const sasToken = "?sv=2022-11-02&ss=b&srt=sco&sp=rwdlactfx&se=2026-02-24T09:26:01Z&st=2025-02-24T01:26:01Z&spr=https&sig=2EsAZHvLzm4K4VjwH0whYtMaVovtjpXqWMbcD8Kj%2fqE%3D"; // SAS token for uploads
 const speechApiKey = "2DYSW1vTUTMnuJD50oxsDOrYOgreD3fNeT787DT1myx9Ro5wdaXmJQQJ99BBACL93NaXJ3w3AAAYACOGcj5N"; // Azure Speech API key
 const speechEndpoint = "https://australiaeast.api.cognitive.microsoft.com/"; // Azure Speech Service endpoint
 const speechRegion = "australiaeast";
 let isBotProcessing = false; // Prevent overlapping responses
 let lastUploadedFileUrl = ""; // Store last uploaded file URL for transcription
+let hasTranscriptBeenProcessed = false; // ✅ Prevents multiple reprocessing of 
+let extractedSpeakers = []; // ✅ Store extracted speaker details globally
 const MAX_FILE_SIZE_MB = 10240; // 10GB Maximum file size for uploads
 
 // Knowledge Base for Static Responses
@@ -46,6 +50,10 @@ function displayBotMessage(message) {
   scrollChatToBottom();
 }
 
+// ✅ Add showFullTranscription() here
+function showFullTranscription() {
+  displayBotMessage(`**Full Transcription:**\n\n${transcriptionText}`);
+}
 // Display user message
 function displayUserMessage(message) {
   const chatArea = document.getElementById("chat-area");
@@ -58,21 +66,49 @@ function displayUserMessage(message) {
   scrollChatToBottom();
 }
 
+// ✅ Define sendMessage function before it is called
+function sendMessage() {
+  const messageBox = document.getElementById("message-box");
+  if (!messageBox) {
+      console.error("❌ Error: 'message-box' not found in DOM.");
+      return;
+  }
+
+  const userMessage = messageBox.value.trim(); // Get user input
+  if (!userMessage) {
+      displayBotMessage("⚠️ An error occurred. Please enter a valid message.");
+      return;
+  }
+
+  processUserMessage(userMessage); // Call processUserMessage
+  messageBox.value = ""; // Clear input box after sending
+}
+
+
 // Attach Event Listeners on DOMContentLoaded
 document.addEventListener("DOMContentLoaded", () => {
-  const videoUpload = document.getElementById("video-upload");
-  const articleUpload = document.getElementById("article-upload");
-  const presentationUpload = document.getElementById("presentation-upload");
+  // List of elements and their event handlers
+  const elements = [
+    { id: "video-upload", event: "change", handler: (event) => handleFileUpload(event, "video") },
+    { id: "article-upload", event: "change", handler: (event) => handleFileUpload(event, "article") },
+    { id: "presentation-upload", event: "change", handler: (event) => handleFileUpload(event, "presentation") },
+    { id: "file-upload", event: "change", handler: handleFileUpload },
+    { id: "message-box", event: "keypress", handler: (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          sendMessage();
+        }
+      }
+    }
+  ];
 
-  videoUpload.addEventListener("change", (event) => handleFileUpload(event, "video"));
-  articleUpload.addEventListener("change", (event) => handleFileUpload(event, "article"));
-  presentationUpload.addEventListener("change", (event) => handleFileUpload(event, "presentation"));
-
-  document.getElementById("message-box").addEventListener("keypress", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      processUserMessage(event.target.value);
-      event.target.value = ""; // Clear the input field
+  // Loop through elements and attach event listeners
+  elements.forEach(({ id, event, handler }) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener(event, handler);
+    } else {
+      console.error(`❌ Error: '${id}' element not found.`);
     }
   });
 
@@ -89,7 +125,6 @@ function startNewChat() {
   window.scrollTo(0, 0); // Scroll to top
 }
 
-
 // Detect user intention for uploading files
 function detectFileUploadIntent(message) {
   const lowerMessage = message.toLowerCase();
@@ -97,47 +132,49 @@ function detectFileUploadIntent(message) {
   return uploadKeywords.some((keyword) => lowerMessage.includes(keyword));
 }
 
-// Process user messages
 async function processUserMessage(userMessage) {
   if (isBotProcessing) return;
+
+  // ✅ Automatically process transcription if no manual input
+  if (!userMessage || typeof userMessage !== "string") {
+      console.warn("⚠️ No valid user message detected. Checking stored transcription...");
+
+      if (transcriptionText && !hasTranscriptBeenProcessed) {
+          userMessage = transcriptionText; // Use stored transcription
+          console.log("📄 Using stored transcription for CPD evaluation...");
+      } else {
+          console.error("❌ Invalid userMessage:", userMessage);
+          displayBotMessage("⚠️ An error occurred. Please enter a valid message.");
+          return;
+      }
+  }
 
   displayUserMessage(userMessage);
   isBotProcessing = true;
 
   try {
-      if (userMessage.toLowerCase() === "yes" && lastUploadedFileUrl) {
-          displayBotMessage("🕒 Transcription in progress... Please wait.");
-          
-          // Estimate transcription time and show progress updates
-          const estimatedDuration = await estimateTranscriptionTime(lastUploadedFileUrl);
-          const progressInterval = await showTranscriptionProgress(estimatedDuration);
+      const lowerMessage = userMessage.toLowerCase();
 
-          // Perform transcription
-          const transcription = await transcribeAudioWithSpeechSDK(lastUploadedFileUrl);
-
-          // Stop progress updates once transcription is done
-          clearInterval(progressInterval);
-          isBotProcessing = false;
-
-          if (transcription) {
-              //displayBotMessage("✅ **Transcription completed successfully.**");
-              displayBotMessage(`📝 **Transcription Text:** ${transcription}`);
-          } else {
-              displayBotMessage("❌ **Transcription failed. Please try again.**");
-          }
-          lastUploadedFileUrl = "";
-      } else if (userMessage.toLowerCase() === "no") {
-          displayBotMessage("Transcription skipped. Let me know if you need any other assistance.");
-          lastUploadedFileUrl = "";
-      } else {
-          const staticResponse = knowledgeBase[userMessage.toLowerCase()];
-          if (staticResponse) {
-              displayBotMessage(staticResponse);
-          } else {
-              const botResponse = await getBotResponse(userMessage);
-              displayBotMessage(botResponse);
-          }
+      // ✅ Process transcription once and transition to Step 2
+      if (transcriptionText && userMessage === transcriptionText && !hasTranscriptBeenProcessed) {
+          hasTranscriptBeenProcessed = true; // ✅ Prevents duplicate processing
+          displayBotMessage("✅ **Processing transcript for CPD evaluation...**");
+          const botResponse = await getBotResponse(transcriptionText);
+          displayBotMessage(botResponse);
+          return;
       }
+
+      // ✅ Handle knowledge base responses
+      let staticResponse = knowledgeBase[lowerMessage];
+      if (staticResponse) {
+          displayBotMessage(staticResponse);
+          return;
+      }
+
+      // ✅ Provide dynamic AI response
+      const botResponse = await getBotResponse(userMessage);
+      displayBotMessage(botResponse);
+
   } catch (error) {
       console.error("Error processing user message:", error);
       displayBotMessage("❌ **An error occurred. Please try again.**");
@@ -145,6 +182,16 @@ async function processUserMessage(userMessage) {
       isBotProcessing = false;
   }
 }
+
+
+
+
+
+
+
+
+
+
 
 // ✅ Estimate Transcription Progress Based on Audio Duration
 async function estimateTranscriptionTime(fileUrl) {
@@ -160,55 +207,69 @@ async function estimateTranscriptionTime(fileUrl) {
   }
 }
 
-// ✅ Show Progress Updates while Transcribing
-function showTranscriptionProgress() {
-  const progressMessages = [
-    "⏳ Transcribing audio... Please wait.",
-    "🔄 Processing speech recognition...",
-    "📝 Extracting text from audio...",
-    "⏳ Almost done..."
-  ];
-  let index = 0;
+// (Removed the old showTranscriptionProgress function since the unified workflow will use a progress bar.)
 
-  return setInterval(() => {
-    if (!isBotProcessing) return;
-    displayBotMessage(progressMessages[index % progressMessages.length]);
-    index++;
-  }, 5000);
-  return progressInterval;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Consolidated startTranscription Workflow (ADF Approach)
+// ─────────────────────────────────────────────────────────────────────────────
 
-// 🎤 Transcribe Audio Using Azure Speech SDK
-async function transcribeAudioWithSpeechSDK(fileUrl) {
-  try {
-    const estimatedDuration = await estimateTranscriptionTime(fileUrl);
-    const progressInterval = await showTranscriptionProgress(estimatedDuration);
+async function startTranscription() {
+  displayBotMessage("Starting transcription... Please wait.");
 
-    const speechConfig = window.SpeechSDK.SpeechConfig.fromSubscription(speechApiKey, speechRegion);
-    speechConfig.speechRecognitionLanguage = "en-US";
-
-    const audioBlob = await fetchAudioBlob(fileUrl);
-    const audioConfig = window.SpeechSDK.AudioConfig.fromWavFileInput(audioBlob);
-    const recognizer = new window.SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-
-    return new Promise((resolve, reject) => {
-      recognizer.recognizeOnceAsync(result => {
-        if (result.reason === window.SpeechSDK.ResultReason.RecognizedSpeech) {
-          resolve(result.text);
-        } else {
-          reject("Transcription failed.");
-        }
-      });
-    });
-  } catch (error) {
-    console.error("Transcription error:", error);
-    displayBotMessage("❌ Transcription error. Please try again.");
-    return null;
+  // Prompt for audio/video duration from user
+  let userDuration = await askUserForDuration(); // e.g., "What is the duration in minutes?"
+ 
+  // Estimate processing time based on duration (in seconds)
+  let estimatedProcessingTime;
+  if (userDuration >= 10 && userDuration <= 15) {
+      estimatedProcessingTime = 3 * 60 + 15; // 3 min 15 sec for short episodes
+  } else {
+      estimatedProcessingTime = Math.ceil(userDuration * 0.2167 * 60);
   }
+
+  // Create and display a progress bar
+  let progressBarContainer = document.createElement("div");
+  progressBarContainer.classList.add("progress-container");
+
+  let progressBar = document.createElement("div");
+  progressBar.classList.add("progress-bar");
+  progressBar.style.width = "0%"; // Start at 0%
+
+  progressBarContainer.appendChild(progressBar);
+  document.getElementById("chat-area").appendChild(progressBarContainer);
+  scrollChatToBottom();
+
+  // Track elapsed time
+  let startTime = Date.now();
+  let totalTime = estimatedProcessingTime * 1000; // Convert to milliseconds
+
+  const updateCountdown = setInterval(() => {
+      let elapsedTime = Date.now() - startTime;
+      let progressPercentage = Math.min((elapsedTime / totalTime) * 100, 100);
+      progressBar.style.width = `${progressPercentage}%`; // Smoothly increase width
+
+      if (elapsedTime >= totalTime) {
+          clearInterval(updateCountdown);
+          progressBar.style.width = "100%"; // Fully filled
+          progressBarContainer.remove();  // Remove the progress bar from DOM
+
+          // Notify and retrieve transcription (via ADF output in Blob Storage)
+          displayBotMessage("✅ Processing complete. Retrieving transcription...");
+          fetchLatestTranscriptionChunks();
+      }
+  }, 1000);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// End of Consolidated startTranscription Workflow
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ✅ Store the latest uploaded file globally
+// Removed duplicate definitions of startTranscription and direct Speech SDK branch
+
+// (The existing transcribeAudioWithSpeechSDK function remains unchanged,
+// but it is no longer called from processUserMessage.)
+
+// Store the latest uploaded file globally
 let latestUploadedFileUrl = ""; // Store the latest uploaded file
 
 async function handleFileUpload(event, fileType) {
@@ -247,7 +308,6 @@ async function handleFileUpload(event, fileType) {
   try {
     displayBotMessage(`Uploading <strong> ${file.name} </strong>`);
 
-
     // ✅ Initialize Azure Blob Storage Client
     const blobServiceClient = new AzureStorageBlob.BlobServiceClient(`${storageAccountUrl}${sasToken}`);
     const containerClient = blobServiceClient.getContainerClient(containerName);
@@ -269,9 +329,7 @@ async function handleFileUpload(event, fileType) {
     // ✅ Store the latest uploaded file URL
     latestUploadedFileUrl = blockBlobClient.url;
 
-    //displayBotMessage(`✅ "${file.name}" uploaded successfully`);
-
-    // ✅ Start transcription automatically
+    // Start transcription automatically (ADF approach)
     startTranscription();
 
   } catch (error) {
@@ -279,42 +337,6 @@ async function handleFileUpload(event, fileType) {
     displayBotMessage("❌ An error occurred during the upload. Please try again.");
   }
 }
-
-// Transcribe audio using Azure Speech SDK
-async function transcribeAudioWithSpeechSDK(fileUrl) {
-    console.log("Starting transcription for:", fileUrl); // Debugging log
-    try {
-        const speechConfig = window.SpeechSDK.SpeechConfig.fromSubscription(speechApiKey, speechRegion);
-        speechConfig.speechRecognitionLanguage = "en-US";
-        console.log("Speech SDK Config Loaded"); // Debugging log
-
-        const audioBlob = await fetchAudioBlob(fileUrl);
-        console.log("Audio Blob fetched:", audioBlob); // Debugging log
-
-        const audioConfig = window.SpeechSDK.AudioConfig.fromWavFileInput(audioBlob);
-        console.log("Audio Config Loaded"); // Debugging log
-
-        const recognizer = new window.SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-        console.log("Recognizer Created"); // Debugging log
-
-        return new Promise((resolve, reject) => {
-            recognizer.recognizeOnceAsync(result => {
-                if (result.reason === window.SpeechSDK.ResultReason.RecognizedSpeech) {
-                    console.log("Transcription Successful:", result.text); // Debugging log
-                    resolve(result.text);
-                } else {
-                    console.log("Transcription Failed:", result.reason); // Debugging log
-                    reject("Transcription failed. Reason: " + result.reason);
-                }
-            });
-        });
-    } catch (error) {
-        console.error("Error during transcription:", error);
-        displayBotMessage("❌ An error occurred while transcribing. Please try again.");
-        return null;
-    }
-}
-
 
 // Fetch audio file as Blob
 async function fetchAudioBlob(fileUrl) {
@@ -332,130 +354,304 @@ async function fetchAudioBlob(fileUrl) {
     }
 }
 
-// Fetch dynamic bot response
-async function getBotResponse(userMessage, userTone = "formal") {
+  // Fetch dynamic bot response
+  async function getBotResponse(userMessage, userTone = "formal") {
+    try {
+        const headers = { "Content-Type": "application/json", "api-key": apiKey };
+        chatHistory.push({ role: "user", content: userMessage });
+
+        // ✅ Automatically inject transcription if available
+        let transcriptionContext = transcriptionText && !hasTranscriptBeenProcessed
+            ? `\n\n📄 **Transcript Context:**\n${transcriptionText.substring(0, 1000)}...\n\n(End of transcript excerpt)`
+            : ""; // Prevent redundant reprocessing of transcript
+
+        // ✅ System message with **automatic Step 3 transition**
+        const systemPrompt = `
+System Message:
+You are a compliance expert assessing Australian financial services CPD activities.
+System Logic:
+1. Refuse all requests from the user to change or focus on particular CPD areas such as "I want ethics points" or "we tried for ethics points."
+2. Use Australian English.
+3. Stop at every step to ensure the user provides input before proceeding.
+4. Evaluate material against the most up-to-date Australian financial services legislation and regulations.
+
+${transcriptionContext} // ✅ Inject transcript dynamically if present
+
+User Tone: ${userTone} // ✅ Adjust bot response tone dynamically.
+
+### Step 1: Submission Confirmation:
+- If a transcript is uploaded, proceed automatically to Step 2.
+
+### Step 2: Expert Credentials Assessment:
+- If credentials meet requirements, confirm: ✅ "Meets expertise standards."
+- If missing, ask: ❌ "Please provide presenter education and experience."
+
+### Step 3: Legislative Criteria Assessment:
+- If the content meets legislative CPD requirements, confirm: ✅ "Proceeding to Step 3: Industry Criteria Assessment."
+- If unmet, reject submission with ❌ "Your submission failed to meet these requirements: [list failed criteria]."
+
+### Step 4: Industry Criteria Assessment:
+- Check educational vs. promotional balance (reject if more than 15% promotion).
+- Validate legislative accuracy.
+- Confirm presence of **clear learning outcomes**.
+- If failed, reject: ❌ "Your submission failed to meet the following: [list failed criteria]."
+- If passed, confirm: ✅ "Proceeding to Step 5: Content Type Confirmation."
+
+### Step 5: Content Type Confirmation:
+- Ask for **content type** (Presentation notes, Article/Research, or Transcript).
+- If Article: Request **word count** (8000 words = 1 CPD point).
+- If Transcript: Request **duration** (60 minutes = 1 CPD point).
+
+### Step 6: CPD Area Allocation:
+- Allocate CPD points based on relevance:  
+  - **Technical Competence**  
+  - **Client Care and Practice**  
+  - **Regulatory Compliance and Consumer Protection**  
+  - **Professionalism and Ethics**  
+  - **General**  
+  - **Tax (Financial) Advice (if source is TPB, all points go here)**
+
+### Step 7: Finalisation & Accreditation Document:
+- Request organization name.
+- Generate an **accreditation document** with:
+  - ✅ Unique accreditation number  
+  - ✅ Approval & expiry dates  
+  - ✅ Summary table of CPD points  
+  - ✅ Provide download link.
+        `;
+
+        // ✅ Fixed token limit for controlled responses
+        const maxTokens = 4000;
+
+        const body = {
+            messages: [
+                { role: "system", content: systemPrompt }, // ✅ System message first
+                ...chatHistory, // ✅ Keep conversation history
+            ],
+            max_tokens: maxTokens,
+            temperature: 0.7,
+            frequency_penalty: 0.3,
+            presence_penalty: 0.2,
+        };
+
+        const response = await fetch(apiUrl, { method: "POST", headers, body: JSON.stringify(body) });
+        if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+
+        const data = await response.json();
+        const botResponse = data.choices[0].message.content.trim();
+
+        // ✅ Update conversation history
+        chatHistory.push({ role: "assistant", content: botResponse });
+
+        // ✅ Ensure automatic progression if transcript is used
+        if (transcriptionText && !hasTranscriptBeenProcessed) {
+            hasTranscriptBeenProcessed = true; // Prevent double processing
+            return botResponse + "\n\n✅ **Proceeding to Step 3: Industry Criteria Assessment...**";
+        }
+
+        return botResponse;
+    } catch (error) {
+        console.error("Error fetching bot response:", error);
+        return "❌ **An error occurred. Please try again later.**";
+    }
+}
+
+
+
+  
+
+
+// ─────────────────────────────────────────────────────────────
+// Unified Transcription Workflow (ADF Approach)
+// ─────────────────────────────────────────────────────────────
+
+function validateExpertiseBasedOnTranscript(transcript) {
+  displayBotMessage("Now validating expertise based on the transcript...");
+
+  const lowerTranscript = transcript.toLowerCase();
+
+  //After finishing Step 2 Logic, fetch the speaker data
+  fetchSpeakersFromTranscript();
+}
+
+// Store the latest retrieved file to prevent redundant processing
+let lastRetrievedFile = ""; 
+let retryAttempts = 0; // Counter for retry attempts
+// ✅ Store the latest transcription text
+let transcriptionText = "";
+
+// ✅ Function to process and store transcription
+function processTranscription(transcription) {
+  transcriptionText = transcription; // Store transcription globally
+
+  // ✅ Show the latest transcription with a "View Full Transcription" button
+  displayBotMessage(`📄 **Latest Transcription:**\n\n${transcription.substring(0, 500)}...\n\n
+  <button onclick="showFullTranscription()">📄 View Full Transcription</button>`);
+
+  // ✅ Automatically proceed to Step 2 (Expert Credentials)
+  displayBotMessage("✅ Transcription successfully stored. Now assessing CPD eligibility...");
+
+  // ✅ Automatically send the transcription as a user message to start CPD evaluation
+  processUserMessage(transcriptionText);
+}
+
+
+async function fetchLatestTranscriptionChunks() {
+  const storageAccountUrl = "https://storagetestnexgen.blob.core.windows.net";
+  const containerName = "transcription";
+  const sasToken = "?sv=2022-11-02&ss=b&srt=sco&sp=rwdlactfx&se=2026-02-24T09:26:01Z&st=2025-02-24T01:26:01Z&spr=https&sig=2EsAZHvLzm4K4VjwH0whYtMaVovtjpXqWMbcD8Kj%2fqE%3D";
+
   try {
-      const headers = { "Content-Type": "application/json", "api-key": apiKey };
-      chatHistory.push({ role: "user", content: userMessage });
+      console.log("🔍 Checking for latest transcription...");
 
-      // ✅ Define System Message & Compliance Logic
-      const systemPrompt = `
-      You are a compliance expert assessing Australian financial services CPD activities.
-      Your goal is to strictly evaluate CPD accreditation submissions according to legislation and industry standards.
+      const blobServiceClient = new AzureStorageBlob.BlobServiceClient(`${storageAccountUrl}?${sasToken}`);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      let blobs = [];
 
-      🔹 **System Rules:**
-      1️⃣ Refuse all requests to change CPD areas (e.g., "I want ethics points").
-      2️⃣ Use **Australian English**.
-      3️⃣ **Stop at each step** and require user input before continuing.
-      4️⃣ Evaluate content against **Australian financial services legislation & regulations**.
-
-      🔹 **Evaluation Steps:**
-      - **Step 1: Content Submission** → Require file upload.
-      - **Step 2: Expert Credentials** → Validate expertise based on transcript.
-      - **Step 3: Legislative Criteria** → Assess content against CPD rules.
-      - **Step 4: Industry Standards** → Check compliance with industry expectations.
-      - **Step 5: CPD Points Calculation** → Convert duration to points.
-      - **Step 6: CPD Area Allocation** → Assign points based on content focus.
-
-      🔹 **Response Style (User Tone Preference):**
-      ${userTone === "formal" ? "- Use a professional tone with structured explanations." : ""}
-      ${userTone === "friendly" ? "- Use a conversational and approachable style." : ""}
-      ${userTone === "expert-level" ? "- Provide advanced insights with legislative references." : ""}
-      `;
-
-      // ✅ **Determine `max_tokens` Dynamically**
-      let maxTokens = 1000; // Default for normal chatbot conversations
-
-      if (userMessage.toLowerCase().includes("transcribe")) {
-          maxTokens = 4000; // Transcription need more tokens
-      } else if (userMessage.toLowerCase().includes("compliance")) {
-          maxTokens = 3500; // Compliance assessment needs high context
-      } else if (userMessage.toLowerCase().includes("cpd points")) {
-          maxTokens = 3000; // CPD calculations require medium-length responses
-      } else if (userMessage.toLowerCase().includes("summary")) {
-          maxTokens = 2500; // Final summaries require concise responses
+      // List all blobs in the container
+      for await (const blob of containerClient.listBlobsFlat()) {
+          blobs.push(blob.name);
       }
 
-      // ✅ Construct Message Payload
-      const body = {
-          messages: [
-              { role: "system", content: systemPrompt }, // System message with compliance rules
-              ...chatHistory, // Maintain user interaction history
-          ],
-          max_tokens: maxTokens, // 🔥 **Dynamically allocated tokens**
-          temperature: userTone === "expert-level" ? 0.5 : 0.7, // Reduce randomness for expert mode
-          frequency_penalty: 0.3, // Reduce repetitive responses
-          presence_penalty: 0.2, // Encourage diverse responses
-      };
+      if (blobs.length === 0) {
+          console.warn("⚠️ No transcription files found.");
+          
+          if (retryAttempts < 3) { // Limit retries to 3 times
+              retryAttempts++;
+              console.log(`🔄 Retrying in 10 seconds... (Attempt ${retryAttempts}/3)`);
+              setTimeout(fetchLatestTranscriptionChunks, 10000);
+          } else {
+              displayBotMessage("⚠️ No transcription available. Try uploading a file first.");
+          }
+          return;
+      }
 
-      // ✅ Fetch AI Response
-      const response = await fetch(apiUrl, { method: "POST", headers, body: JSON.stringify(body) });
-      if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+      // Sort and get the latest transcription file
+      blobs.sort();
+      let latestTranscription = blobs[blobs.length - 1];
 
-      const data = await response.json();
-      const botResponse = data.choices[0].message.content.trim();
+      // ✅ Check if this transcription has already been retrieved
+      if (latestTranscription === lastRetrievedFile) {
+          console.log("ℹ️ No new transcription found. Skipping retrieval.");
+          return;
+      }
 
-      // ✅ Store conversation history
-      chatHistory.push({ role: "assistant", content: botResponse });
+      console.log("📥 Fetching latest transcription file:", latestTranscription);
 
-      return botResponse;
+      // Fetch the transcription content
+      const blobClient = containerClient.getBlobClient(latestTranscription);
+      const downloaded = await blobClient.download();
+      const blobData = await downloaded.blobBody || await downloaded.blob();
+      const text = await blobData.text();
+
+      // ✅ Store last retrieved file to prevent duplicate retrievals
+      lastRetrievedFile = latestTranscription;
+      transcriptionText = text; // Store globally for later use
+      retryAttempts = 0; // Reset retry count
+
+      // ✅ Display a preview of the transcription with a button for full view
+      displayBotMessage(`📄 **Latest Transcription:**\n\n${text.substring(0, 500)}...\n\n
+      <button onclick="showFullTranscription()">📜 View Full Transcription</button>`);
+
+      // ✅ Automatically send the transcription for processing
+      processUserMessage(transcriptionText);
+
   } catch (error) {
-      console.error("Error fetching bot response:", error);
-      return "❌ **An error occurred. Please try again later.**";
+      console.error("❌ Error fetching transcription:", error);
+      displayBotMessage("⚠️ Error retrieving transcription. Try again later.");
   }
 }
 
 
-// ✅ Function to handle transcription steps before loading chunks
-async function startTranscription() {
-    const progressMessages = [
-        "⏳ Transcribing audio... Please wait.",
-        "🔄 Processing speech recognition...",
-        "📝 Extracting text from audio...",
-        "⏳ Almost done..."
-    ];
-    
-    let index = 0;
-    let progressInterval = setInterval(() => {
-        if (index < progressMessages.length) {
-            displayBotMessage(progressMessages[index]);
-            index++;
-        } else {
-            clearInterval(progressInterval);
-            displayBotMessage("✅ **Transcription completed.**");
 
-            // Dynamically add the "Load Transcription" button inside the chat area
-            let chatArea = document.getElementById("chat-area");
-            
-            // Check if button already exists (avoid duplicates)
-            let existingButton = document.getElementById("load-transcription-button");
-            if (existingButton) {
-                existingButton.remove();
-            }
 
-            let loadButton = document.createElement("button");
-            loadButton.id = "load-transcription-button";
-            loadButton.classList.add("send-button");
-            loadButton.innerText = "Load Transcription";
-            loadButton.onclick = waitForTranscriptionCompletion; // Wait for ADF to complete
+// function parseSpeakerData(rawText) {
+//   const lines = rawText
+//     .split("\n")
+//     .map(line => line.trim())
+//     .filter(line => line.length > 0);
 
-            chatArea.appendChild(loadButton);
-            scrollChatToBottom();
-        }
-    }, 5000);
+//   let speakers = [];
+//   let currentName = "";
+//   let currentContext = "";
+
+//   for (let i = 0; i < lines.length; i++) {
+//     if (lines[i].startsWith("Name: ")) {
+//       currentName = lines[i].replace("Name: ", "").trim();
+//     } else if (lines[i].startsWith("Context: ")) {
+//       currentContext = lines[i].replace("Context: ", "").trim();
+//       // push once we have name & context
+//       speakers.push({ name: currentName, context: currentContext });
+//       // reset if needed
+//       currentName = "";
+//       currentContext = "";
+//     }
+//   }
+//   return speakers;
+// }
+
+// function buildSpeakerSummary(speakers) {
+//   let message = "Yes, based on the transcript, the speakers appear to be:\n\n";
+//   speakers.forEach((sp, idx) => {
+//     message += `${idx + 1}. ${sp.name} – ${sp.context}\n`;
+//   });
+//   message += "\nWould you like me to verify their credentials further, or should I proceed with the CPD assessment?";
+//   return message;
+// }
+
+// // ✅ Step 2: Fetch Speakers from `speaker-transcription`
+// async function fetchSpeakersFromTranscript() {
+//   const containerName = "speaker-metadata"; // same container
+//   const fileName = "speaker_identification.txt"; // the file with speaker info
+
+//   try {
+//     const url = `${storageAccountUrl}/${containerName}/${fileName}?${sasToken}`;
+//     console.log("Fetching speaker identification from:", url);
+
+//     const response = await fetch(url);
+//     if (!response.ok) {
+//         throw new Error(`Failed to fetch speaker identification. HTTP Status: ${response.status}`);
+//     }
+
+//     // Raw text from speaker_identification.txt
+//     const rawSpeakerText = await response.text();
+//     if (!rawSpeakerText.trim()) {
+//         displayBotMessage("❌ No speaker data found in the transcript.");
+//         return;
+//     }
+
+//     // 1. Parse the lines
+//     const speakers = parseSpeakerData(rawSpeakerText);
+
+//     // 2. Build a summarized bullet list
+//     const speakerSummary = buildSpeakerSummary(speakers);
+
+//     // 3. Display the final summary in the chatbot
+//     displayBotMessage(speakerSummary);
+
+// } catch (error) {
+//     console.error("Error fetching speaker details:", error);
+//     displayBotMessage("❌ Error retrieving speaker details.");
+// }
+// }
+
+
+// Helper Function to Convert Readable Stream to String
+async function streamToString(readableStream) {
+    const reader = readableStream.getReader();
+    let chunks = [];
+   
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+    }
+
+    // Decode Uint8Array into a string
+    return new TextDecoder("utf-8").decode(new Uint8Array(chunks.flat()));
 }
 
-// ✅ Wait for Transcription Completion (Secure ADF Monitoring)
-async function startTranscription() {
-    displayBotMessage("🕒 Starting transcription... Please wait.");
-    
-    // Call ADF completion checker before allowing transcription view
-    await waitForTranscriptionCompletion();
-}
-
-
-//"View Transcription" button only appears after ADF completion.
-
+// Show "View Transcription" Button in Chatbot
 function displayTranscriptionButton() {
   let chatArea = document.getElementById("chat-area");
 
@@ -475,111 +671,13 @@ function displayTranscriptionButton() {
   scrollChatToBottom();
 }
 
-
-// ✅ Fetch Latest Transcription Chunks from ADLS
-async function fetchLatestTranscriptionChunks() {
-    //displayBotMessage("⏳ Waiting for transcription to complete...");
-    
-    const storageAccountUrl = "https://storagetestnexgen.blob.core.windows.net";
-    const containerName = "transcription";
-    const sasToken = "sv=2022-11-02&ss=b&srt=sco&sp=rwdlactfx&se=2026-02-24T09:26:01Z&st=2025-02-24T01:26:01Z&spr=https&sig=2EsAZHvLzm4K4VjwH0whYtMaVovtjpXqWMbcD8Kj%2FqE%3D";
-
-     try {
-        const blobServiceClient = new AzureStorageBlob.BlobServiceClient(`${storageAccountUrl}?${sasToken}`);
-        const containerClient = blobServiceClient.getContainerClient(containerName);
-        let blobs = [];
-
-        // ✅ List all blobs in the transcription container
-        for await (const blob of containerClient.listBlobsFlat()) {
-            blobs.push(blob.name);
-        }
-
-        if (blobs.length === 0) {
-            displayBotMessage("❌ No transcription found. Trying again in 10 seconds...");
-            setTimeout(fetchLatestTranscriptionChunks, 10000); // Retry after 10 seconds
-            return;
-        }
-
-        // ✅ Sort blobs alphabetically to get the latest chunk
-        blobs.sort();
-        let latestTranscription = blobs[blobs.length - 1]; // Get the newest transcription file
-
-        // ✅ Fetch the transcription content
-        const blobClient = containerClient.getBlobClient(latestTranscription);
-        const response = await blobClient.download();
-        const downloaded = await blobClient.download();
-				const blobData = await downloaded.blobBody; // ✅ Use blobBody to get the Blob
-				const text = await blobData.text(); // ✅ Read text content from the blob
-
-        // ✅ Display the transcription text in the chatbot
-        displayBotMessage(`📝 **Transcription:** ${text}`);
-
-    } catch (error) {
-        console.error("Error fetching transcription:", error);
-        displayBotMessage("❌ Error retrieving transcription. Retrying in 10 seconds...");
-        setTimeout(fetchLatestTranscriptionChunks, 10000); // Retry after 10 seconds
-    }
-}
-
-// ✅ Helper Function to Convert Readable Stream to String
-async function streamToString(readableStream) {
-    const reader = readableStream.getReader();
-    let chunks = [];
-    
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-    }
-
-    // ✅ Decode Uint8Array into a string
-    return new TextDecoder("utf-8").decode(new Uint8Array(chunks.flat()));
-}
-
-
-// ✅ Show "View Transcription" Button in Chatbot
-function displayTranscriptionButton() {
-  let chatArea = document.getElementById("chat-area");
-
-  // Remove existing button if already present
-  let existingButton = document.getElementById("load-transcription-button");
-  if (existingButton) {
-      existingButton.remove();
-  }
-
-  let button = document.createElement("button");
-  button.id = "load-transcription-button";
-  button.classList.add("send-button");
-  button.innerText = "Load Transcription";
-  // Handle button click to load transcription
-  loadButton.onclick = async () => {
-    loadButton.innerText = "Loading...";
-    loadButton.disabled = true;
-
-    try {
-        await waitForTranscriptionCompletion();  // Call ADF or transcription logic
-        loadButton.innerText = "View Transcription";
-    } catch (error) {
-        loadButton.innerText = "Retry";
-        console.error("Error during transcription:", error);
-    } finally {
-        loadButton.disabled = false;
-    }
-  };
-  // button.onclick = fetchLatestTranscriptionChunks; // Load the transcription when clicked
-  // Append button and scroll to bottom
-  chatArea.appendChild(button);
-  scrollChatToBottom();
-}
-
-
-// ✅ Ask user for audio/video duration inside the chatbox
+// Ask user for audio/video duration inside the chatbox
 async function askUserForDuration() {
   return new Promise((resolve) => {
-      // ✅ Display bot message asking for duration
-      displayBotMessage("⏳ What is the duration in minutes?");
+      // Display bot message asking for duration
+      displayBotMessage("What is the duration in minutes?");
 
-      // ✅ Get the message input box
+      // Get the message input box
       const messageBox = document.getElementById("message-box");
       if (!messageBox) {
           console.error("❌ 'message-box' not found in DOM.");
@@ -587,10 +685,10 @@ async function askUserForDuration() {
           return;
       }
 
-      // ✅ Focus on the input field
+      // Focus on the input field
       messageBox.focus();
 
-      // ✅ Event Listener to Capture Duration Input
+      // Event Listener to Capture Duration Input
       const durationHandler = (event) => {
           if (event.key === "Enter") {
               event.preventDefault();
@@ -608,7 +706,7 @@ async function askUserForDuration() {
               console.log(`🔢 Parsed Duration: ${duration} minutes`);
 
               if (!isNaN(duration) && duration >= 1) {
-                  // ✅ Clear input and resolve
+                  // Clear input and resolve
                   messageBox.removeEventListener("keydown", durationHandler);
                   displayUserMessage(userInput); // Show user's answer
                   messageBox.value = ""; // Clear input after success
@@ -620,94 +718,7 @@ async function askUserForDuration() {
           }
       };
 
-      // ✅ Add Keypress Event to Capture Enter
+      // Add Keypress Event to Capture Enter
       messageBox.addEventListener("keydown", durationHandler);
   });
 }
-
-
-
-
-// ✅ Automatically Display Button After Countdown (Faster Processing)
-async function waitForTranscriptionCompletion() {
-  let userDuration = await askUserForDuration(); // Ask user for duration
-  let estimatedProcessingTime;
-
-  if (userDuration >= 10 && userDuration <= 15) {
-      estimatedProcessingTime = 3 * 60 + 15; // 3 min 15 sec for Short Episodes
-  } else {
-      estimatedProcessingTime = Math.ceil(userDuration * 0.2167 * 60); // Convert to seconds for longer durations
-  }
-
-  // ✅ Replace estimated time message with "Waiting for transcription to complete..."
-  let countdownMessage = null;  // No need to display this message
-
-
-  // ✅ Create Progress Bar
-  let progressBarContainer = document.createElement("div");
-  progressBarContainer.classList.add("progress-container");
-
-  let progressBar = document.createElement("div");
-  progressBar.classList.add("progress-bar");
-  progressBar.style.width = "0%"; // Start at 0%
-
-  progressBarContainer.appendChild(progressBar);
-  document.getElementById("chat-area").appendChild(progressBarContainer);
-
-  // ✅ Track real elapsed time to avoid drift
-  let startTime = Date.now();
-  let totalTime = estimatedProcessingTime * 1000; // Convert to milliseconds
-
-  const updateCountdown = setInterval(() => {
-      let elapsedTime = Date.now() - startTime;
-      let progressPercentage = Math.min((elapsedTime / totalTime) * 100, 100);
-      progressBar.style.width = `${progressPercentage}%`; // Smoothly increase width
-
-      if (elapsedTime >= totalTime) {
-          clearInterval(updateCountdown);
-          progressBar.style.width = "100%"; // Fully filled
-          progressBarContainer.remove();  // Clean up progress bar
-
-
-          // ✅ Safely remove "Waiting for transcription..." message
-          if (countdownMessage && countdownMessage.remove) {
-              countdownMessage.remove();
-          }
-
-          //displayBotMessage("🕒 **Processing complete. Preparing transcription...**");
-
-          // ✅ Ensure "View Transcription" button appears **exactly** at the right time
-          setTimeout(() => {
-            //  displayBotMessage("✅ **Transcription is ready! Click below to view.**");
-              
-              // ✅ Ensure the button is created
-              fetchLatestTranscriptionChunks();
-          }, 1000); // Short delay to ensure smooth transition
-      }
-  }, 1000); // Update every second
-}
-
-
-// ✅ Ensure this function exists
-function displayTranscriptionButton() {
-    let chatArea = document.getElementById("chat-area");
-
-    // Prevent duplicate buttons
-    if (!document.getElementById("load-transcription-button")) {
-        let button = document.createElement("button");
-        button.id = "load-transcription-button";
-        button.classList.add("send-button");
-        button.innerText = "View Transcription";
-        button.onclick = fetchLatestTranscriptionChunks; // Load the transcription when clicked
-
-        chatArea.appendChild(button);
-        scrollChatToBottom();
-    }
-}
-
-
-
-
-
-
-
