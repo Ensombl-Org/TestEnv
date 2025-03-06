@@ -1,7 +1,10 @@
 //Jid Espenorio - Ensombl
-//Updated 28/02/2025
-//Variables v1.6
+//Updated 06/03/2025
+//Variables v1.7
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 🟢 GLOBAL VARIABLES
+// ─────────────────────────────────────────────────────────────────────────────
 let userName = ""; // Store user's name
 let chatHistory = []; // Store conversation context
 const apiKey = "F5TTEZU13jwfovrhBsfw5c1yqu8yL2iUDXHavU1YUA1WM13QUtsZJQQJ99BBACL93NaXJ3w3AAABACOGijkq"; // Azure OpenAI API key
@@ -17,7 +20,9 @@ let hasTranscriptBeenProcessed = false; // ✅ Prevents multiple reprocessing of
 let extractedSpeakers = []; // ✅ Store extracted speaker details globally
 const MAX_FILE_SIZE_MB = 10240; // 10GB Maximum file size for uploads
 
-// Knowledge Base for Static Responses
+// ─────────────────────────────────────────────────────────────────────────────
+// 📚 KNOWLEDGE BASE
+// ─────────────────────────────────────────────────────────────────────────────
 const knowledgeBase = {
   "what is cpd accreditation?": `
   📘 **What is CPD Accreditation?**
@@ -30,6 +35,44 @@ const knowledgeBase = {
   - **Articles**: PDF, DOC, DOCX, TXT
   - **Presentations**: PPT, PPTX, PDF`,
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ✅ Function to extract speaker details using Named Entity Recognition (NER)
+// ─────────────────────────────────────────────────────────────────────────────
+function extractSpeakerDetails(transcript) {
+  const namePattern = /(?:Joining us today is|Welcome to the show,|My name is)\s([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/g;
+  const jobPattern = /([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)\s(at|from)\s([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)/g;
+  
+  let speakers = [];
+  let match;
+
+  // ✅ Extract host/guest names
+  while ((match = namePattern.exec(transcript)) !== null) {
+      let speakerName = match[1];
+      speakers.push({ name: speakerName, role: "Host/Guest", company: "" });
+  }
+
+  // ✅ Extract job titles and company names
+  while ((match = jobPattern.exec(transcript)) !== null) {
+      let jobTitle = match[1];
+      let company = match[3];
+      
+      let existingSpeaker = speakers.find(s => transcript.includes(s.name));
+      if (existingSpeaker) {
+          existingSpeaker.role = jobTitle;
+          existingSpeaker.company = company;
+      } else {
+          speakers.push({ name: "Unknown", role: jobTitle, company: company });
+      }
+  }
+
+  return speakers;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🚀 MAIN FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Scroll the chat area to the bottom
 function scrollChatToBottom() {
@@ -85,7 +128,9 @@ function sendMessage() {
 }
 
 
-// Attach Event Listeners on DOMContentLoaded
+// ─────────────────────────────────────────────────────────────────────────────
+// ✅ Attach Event Listeners on DOMContentLoaded
+// ─────────────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   // List of elements and their event handlers
   const elements = [
@@ -124,6 +169,10 @@ function startNewChat() {
   displayBotMessage("Choose an option to get started..");
   window.scrollTo(0, 0); // Scroll to top
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Additional Transcription and Upload Handling Functions would go here
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Detect user intention for uploading files
 function detectFileUploadIntent(message) {
@@ -182,15 +231,6 @@ async function processUserMessage(userMessage) {
       isBotProcessing = false;
   }
 }
-
-
-
-
-
-
-
-
-
 
 
 // ✅ Estimate Transcription Progress Based on Audio Duration
@@ -468,10 +508,16 @@ User Tone: ${userTone} // ✅ Adjust bot response tone dynamically.
 function validateExpertiseBasedOnTranscript(transcript) {
   displayBotMessage("Now validating expertise based on the transcript...");
 
-  const lowerTranscript = transcript.toLowerCase();
+  // ✅ Use extracted speaker data instead of fetching externally
+  if (extractedSpeakers.length > 0) {
+      let speakerDetails = extractedSpeakers.map(s => 
+          `🎙️ **${s.name}** - *${s.role}* at **${s.company}**`
+      ).join("\n");
 
-  //After finishing Step 2 Logic, fetch the speaker data
-  fetchSpeakersFromTranscript();
+      displayBotMessage(`✅ **Speakers Confirmed:**\n${speakerDetails}\n\nNow checking CPD eligibility.`);
+  } else {
+      displayBotMessage("⚠️ No speakers detected. Please enter speaker credentials manually.");
+  }
 }
 
 // Store the latest retrieved file to prevent redundant processing
@@ -484,16 +530,27 @@ let transcriptionText = "";
 function processTranscription(transcription) {
   transcriptionText = transcription; // Store transcription globally
 
+  // ✅ Extract speaker details before proceeding
+  extractedSpeakers = extractSpeakerDetails(transcription);
+
   // ✅ Show the latest transcription with a "View Full Transcription" button
   displayBotMessage(`📄 **Latest Transcription:**\n\n${transcription.substring(0, 500)}...\n\n
   <button onclick="showFullTranscription()">📄 View Full Transcription</button>`);
 
-  // ✅ Automatically proceed to Step 2 (Expert Credentials)
-  displayBotMessage("✅ Transcription successfully stored. Now assessing CPD eligibility...");
+  if (extractedSpeakers.length > 0) {
+      let speakerList = extractedSpeakers.map(s => 
+          `🎙️ **${s.name}** - *${s.role}* at **${s.company}**`
+      ).join("\n");
+
+      displayBotMessage(`✅ **Identified Speakers:**\n${speakerList}\n\nProceeding to Step 2: **Expert Credentials Verification**...`);
+  } else {
+      displayBotMessage("⚠️ No speakers detected. Please confirm speaker details manually.");
+  }
 
   // ✅ Automatically send the transcription as a user message to start CPD evaluation
   processUserMessage(transcriptionText);
 }
+
 
 
 async function fetchLatestTranscriptionChunks() {
