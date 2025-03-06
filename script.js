@@ -1,6 +1,6 @@
 //Jid Espenorio - Ensombl
 //Updated 06/03/2025
-//Variables v1.7
+//Variables v1.8
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🟢 GLOBAL VARIABLES
@@ -407,58 +407,110 @@ async function fetchAudioBlob(fileUrl) {
 
         // ✅ System message with **automatic Step 3 transition**
         const systemPrompt = `
-System Message:
-You are a compliance expert assessing Australian financial services CPD activities.
-System Logic:
-1. Refuse all requests from the user to change or focus on particular CPD areas such as "I want ethics points" or "we tried for ethics points."
-2. Use Australian English.
-3. Stop at every step to ensure the user provides input before proceeding.
-4. Evaluate material against the most up-to-date Australian financial services legislation and regulations.
+📌 **System Message: CPD Accreditation Expert**
+You are a compliance expert assessing Australian financial services CPD activities. Follow the Ensombl CPD Policy and ensure all assessments comply with legislative requirements.
 
-${transcriptionContext} // ✅ Inject transcript dynamically if present
+---
+### **Step 1: Submission Confirmation**
+- If a transcript is uploaded, **proceed automatically** to Step 2.
 
-User Tone: ${userTone} // ✅ Adjust bot response tone dynamically.
+---
+### **Step 2: Expert Credentials Assessment**
+1️⃣ Identify the **organization** and **speakers** from the transcript.
+2️⃣ Validate whether speakers hold an **AFSL or relevant financial expertise**.
+3️⃣ Confirm if they **meet expertise standards**.
 
-### Step 1: Submission Confirmation:
-- If a transcript is uploaded, proceed automatically to Step 2.
+**✅ If valid:** "Meets expertise standards."  
+**❌ If invalid:** "Please provide presenter education and experience."
 
-### Step 2: Expert Credentials Assessment:
-- If credentials meet requirements, confirm: ✅ "Meets expertise standards."
-- If missing, ask: ❌ "Please provide presenter education and experience."
+---
+### **Step 3: Legislative Criteria Assessment**
+Evaluate the material against these criteria:
 
-### Step 3: Legislative Criteria Assessment:
-- If the content meets legislative CPD requirements, confirm: ✅ "Proceeding to Step 3: Industry Criteria Assessment."
-- If unmet, reject submission with ❌ "Your submission failed to meet these requirements: [list failed criteria]."
+✔️ **Is the education related to financial advice?** (Yes/No)  
+✔️ **Does it fall within legislated CPD areas?** (Yes/No)  
+✔️ **Is there sufficient intellectual/practical content?** (Yes/No)  
+✔️ **Is it conducted by a qualified expert?** (Yes/No)  
+✔️ **Does it enhance financial advising skills?** (Yes/No)  
 
-### Step 4: Industry Criteria Assessment:
-- Check educational vs. promotional balance (reject if more than 15% promotion).
-- Validate legislative accuracy.
-- Confirm presence of **clear learning outcomes**.
-- If failed, reject: ❌ "Your submission failed to meet the following: [list failed criteria]."
-- If passed, confirm: ✅ "Proceeding to Step 5: Content Type Confirmation."
+**✅ If all criteria are met:** "Proceeding to Step 3: Industry Criteria Assessment."  
+**❌ If unmet:** "Your submission failed to meet these requirements: [list failed criteria]."
 
-### Step 5: Content Type Confirmation:
-- Ask for **content type** (Presentation notes, Article/Research, or Transcript).
-- If Article: Request **word count** (8000 words = 1 CPD point).
-- If Transcript: Request **duration** (60 minutes = 1 CPD point).
+---
+### **Step 4: Industry Criteria Assessment**
+✔️ **Ensure the content is educational, not promotional.** (Max 15% promotional)  
+✔️ **Check accuracy & compliance with regulations.**  
+✔️ **Validate presence of clear learning outcomes.**  
 
-### Step 6: CPD Area Allocation:
-- Allocate CPD points based on relevance:  
-  - **Technical Competence**  
-  - **Client Care and Practice**  
-  - **Regulatory Compliance and Consumer Protection**  
-  - **Professionalism and Ethics**  
-  - **General**  
-  - **Tax (Financial) Advice (if source is TPB, all points go here)**
+**✅ If met:** "Proceeding to Step 5: Content Type Confirmation."  
+**❌ If failed:** "Your submission failed to meet the following: [list failed criteria]."
 
-### Step 7: Finalisation & Accreditation Document:
-- Request organization name.
-- Generate an **accreditation document** with:
-  - ✅ Unique accreditation number  
-  - ✅ Approval & expiry dates  
-  - ✅ Summary table of CPD points  
-  - ✅ Provide download link.
-        `;
+---
+### **Step 5: CPD Points Calculation**
+Since this is a podcast (transcript-based submission), CPD points are calculated based on duration:
+
+🔹 **CPD Calculation:**  
+- 6 minutes = 0.1 CPD point  
+- 60 minutes = 1.0 CPD point  
+
+**📌 Ask the user:** "Please confirm the exact duration of the podcast (in minutes)."
+
+---
+### **Step 6: CPD Area Allocation**
+Based on the podcast content, allocate CPD points as follows:
+
+| **CPD Area** | **Allocated Points** |
+|-------------|----------------------|
+| Technical Competence | [X.X] |
+| Client Care and Practice | [X.X] |
+| Regulatory Compliance and Consumer Protection | [X.X] |
+| Professionalism and Ethics | [X.X] |
+| General | [X.X] |
+| Tax (Financial) Advice | [X.X] |
+
+Provide an **explanation for each allocation**.
+
+---
+### **Step 7: CPD Assessment Questions**
+- Create **1 multiple-choice question per 0.2 CPD points**.
+- Format as follows:
+
+**📌 Example:**
+**Question 1 (Technical Competence)**  
+*What is a key reason contrarian investing can be effective in volatile markets?*  
+🔘 A) It follows the wisdom of the crowd  
+🔘 B) It seeks to capitalise on market overreactions and mispricing ✅  
+🔘 C) It involves shifting portfolios entirely to cash during downturns  
+
+---
+### **Step 8: Finalisation & CPD Accreditation Document**
+✅ **Final Step: Generate the CPD Accreditation Document**
+1️⃣ **Ask for Organisation Name** → "Please confirm the name of your organisation."  
+2️⃣ **Generate a Unique Accreditation Number**  
+   - Format: "Format: {First 4 letters of Organisation}-{Random 4-digit number}-{DDMMYYYY}"
+3️⃣ **Include Structured Accreditation Details:**  
+   - **Accreditation Number**  
+   - **Approval Date (Today’s Date)**  
+   - **Expiry Date (12 months from today)**  
+   - **Accreditation Points Allocation Table**  
+4️⃣ **Generate Word Document** → Provide a download link inside the chat.  
+
+📌 **Ensure responses follow this format:**  
+---
+**CPD Accreditation Document for [User-Provided Organisation Name]**  
+📄 **Accreditation Number:** [Generated ID]  
+📅 **Approval Date:** [Today's Date]  
+📅 **Expiry Date:** [12 Months from Today]  
+
+✅ **Summary of CPD Points:**  
+[CPD Allocation Table]  
+
+📌 **Multiple-Choice Questions:** [Include generated MCQs]  
+
+Click the link below to **download the CPD Accreditation document** in Word format:  
+[Download Word Document]
+`;
+      
 
         // ✅ Fixed token limit for controlled responses
         const maxTokens = 4000;
@@ -496,9 +548,130 @@ User Tone: ${userTone} // ✅ Adjust bot response tone dynamically.
     }
 }
 
+async function generateWordDocument(orgName) {
+  // Ensure `docx` is available
+  if (typeof docx === "undefined") {
+      console.error("❌ Error: docx is not defined. Ensure the docx library is loaded.");
+      displayBotMessage("⚠️ Internal error: CPD document generation failed.");
+      return;
+  }
 
+  // Import docx objects
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell } = docx;
 
-  
+  // Generate Accreditation Number
+  let today = new Date();
+  let accreditationDate = today.toLocaleDateString("en-AU", { day: '2-digit', month: 'long', year: 'numeric' });
+
+  let expiryDate = new Date();
+  expiryDate.setFullYear(today.getFullYear() + 1);
+  let formattedExpiryDate = expiryDate.toLocaleDateString("en-AU", { day: '2-digit', month: 'long', year: 'numeric' });
+
+  const accreditationNumber = `${orgName.substring(0, 4).toUpperCase()}-${Math.floor(Math.random() * 9999)}-${today.getDate()}${today.getMonth() + 1}${today.getFullYear()}`;
+
+  // Create the Word document
+  const doc = new Document({
+      sections: [
+          {
+              properties: {},
+              children: [
+                  new Paragraph({
+                      children: [
+                          new TextRun({
+                              text: "Approval for Continuing Professional Development",
+                              bold: true,
+                              size: 32
+                          }),
+                      ],
+                  }),
+                  new Paragraph({
+                      children: [new TextRun(`To: ${orgName}`)],
+                      spacing: { after: 200 },
+                  }),
+                  new Paragraph({
+                      text: "After a thorough examination of your content against the Ensombl Continuing Professional Development Policy and Standards, your content meets the required standards. You can issue certificates to participants indicating the obtained CPD points, as outlined below.",
+                      spacing: { after: 200 },
+                  }),
+                  new Paragraph({
+                      text: "Accreditation Details:",
+                      bold: true,
+                      spacing: { after: 100 },
+                  }),
+                  new Paragraph(`- Accreditation Number: ${accreditationNumber}`),
+                  new Paragraph(`- Approval Date: ${accreditationDate}`),
+                  new Paragraph(`- Expiry Date: ${formattedExpiryDate}`),
+                  new Paragraph(`- Rationale for Validity Period: All content is provided with 12 months validity.`),
+
+                  new Paragraph({
+                      text: "Accreditation Points Allocation:",
+                      bold: true,
+                      spacing: { before: 200, after: 100 },
+                  }),
+                  new Table({
+                      rows: [
+                          new TableRow({
+                              children: [
+                                  new TableCell({ children: [new Paragraph("CPD Area")] }),
+                                  new TableCell({ children: [new Paragraph("Allocated Points")] }),
+                              ],
+                          }),
+                          new TableRow({
+                              children: [
+                                  new TableCell({ children: [new Paragraph("Technical Competence")] }),
+                                  new TableCell({ children: [new Paragraph("0.2")] }),
+                              ],
+                          }),
+                          new TableRow({
+                              children: [
+                                  new TableCell({ children: [new Paragraph("Client Care and Practice")] }),
+                                  new TableCell({ children: [new Paragraph("0.2")] }),
+                              ],
+                          }),
+                          new TableRow({
+                              children: [
+                                  new TableCell({ children: [new Paragraph("Regulatory Compliance and Consumer Protection")] }),
+                                  new TableCell({ children: [new Paragraph("0.1")] }),
+                              ],
+                          }),
+                      ],
+                  }),
+
+                  new Paragraph({
+                      text: "This activity has been accredited for continuing professional development by Ensombl. Please note, this does not constitute Ensombl’s endorsement of the activity. For details, visit ensombl.com/cpd.",
+                      spacing: { before: 200 },
+                  }),
+
+                  new Paragraph({
+                      text: "Contact Details:",
+                      bold: true,
+                      spacing: { before: 200, after: 100 },
+                  }),
+                  new Paragraph(`CPD Compliance Team, Ensombl Pty Ltd`),
+                  new Paragraph(`Level 4, 75 Pitt St, Sydney, NSW, 2000`),
+                  new Paragraph(`www.ensombl.com`),
+              ],
+          },
+      ],
+  });
+
+  // ✅ Generate and download the document
+  try {
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = `CPD_Accreditation_${orgName}.docx`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      displayBotMessage(`✅ **Your CPD accreditation document has been generated.**  
+      Click <a href="${url}" target="_blank">here</a> to download.`);
+  } catch (error) {
+      console.error("❌ Error generating Word document:", error);
+      displayBotMessage("⚠️ CPD Accreditation document generation failed.");
+  }
+}
 
 
 // ─────────────────────────────────────────────────────────────
@@ -620,79 +793,6 @@ async function fetchLatestTranscriptionChunks() {
 }
 
 
-
-
-// function parseSpeakerData(rawText) {
-//   const lines = rawText
-//     .split("\n")
-//     .map(line => line.trim())
-//     .filter(line => line.length > 0);
-
-//   let speakers = [];
-//   let currentName = "";
-//   let currentContext = "";
-
-//   for (let i = 0; i < lines.length; i++) {
-//     if (lines[i].startsWith("Name: ")) {
-//       currentName = lines[i].replace("Name: ", "").trim();
-//     } else if (lines[i].startsWith("Context: ")) {
-//       currentContext = lines[i].replace("Context: ", "").trim();
-//       // push once we have name & context
-//       speakers.push({ name: currentName, context: currentContext });
-//       // reset if needed
-//       currentName = "";
-//       currentContext = "";
-//     }
-//   }
-//   return speakers;
-// }
-
-// function buildSpeakerSummary(speakers) {
-//   let message = "Yes, based on the transcript, the speakers appear to be:\n\n";
-//   speakers.forEach((sp, idx) => {
-//     message += `${idx + 1}. ${sp.name} – ${sp.context}\n`;
-//   });
-//   message += "\nWould you like me to verify their credentials further, or should I proceed with the CPD assessment?";
-//   return message;
-// }
-
-// // ✅ Step 2: Fetch Speakers from `speaker-transcription`
-// async function fetchSpeakersFromTranscript() {
-//   const containerName = "speaker-metadata"; // same container
-//   const fileName = "speaker_identification.txt"; // the file with speaker info
-
-//   try {
-//     const url = `${storageAccountUrl}/${containerName}/${fileName}?${sasToken}`;
-//     console.log("Fetching speaker identification from:", url);
-
-//     const response = await fetch(url);
-//     if (!response.ok) {
-//         throw new Error(`Failed to fetch speaker identification. HTTP Status: ${response.status}`);
-//     }
-
-//     // Raw text from speaker_identification.txt
-//     const rawSpeakerText = await response.text();
-//     if (!rawSpeakerText.trim()) {
-//         displayBotMessage("❌ No speaker data found in the transcript.");
-//         return;
-//     }
-
-//     // 1. Parse the lines
-//     const speakers = parseSpeakerData(rawSpeakerText);
-
-//     // 2. Build a summarized bullet list
-//     const speakerSummary = buildSpeakerSummary(speakers);
-
-//     // 3. Display the final summary in the chatbot
-//     displayBotMessage(speakerSummary);
-
-// } catch (error) {
-//     console.error("Error fetching speaker details:", error);
-//     displayBotMessage("❌ Error retrieving speaker details.");
-// }
-// }
-
-
 // Helper Function to Convert Readable Stream to String
 async function streamToString(readableStream) {
     const reader = readableStream.getReader();
@@ -774,8 +874,14 @@ async function askUserForDuration() {
               }
           }
       };
-
+    
       // Add Keypress Event to Capture Enter
       messageBox.addEventListener("keydown", durationHandler);
   });
 }
+
+// ✅ `DOMContentLoaded` should be **outside** any function
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ Chatbot Initialized");
+});
+
