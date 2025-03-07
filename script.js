@@ -1,7 +1,11 @@
 //Jid Espenorio - Ensombl
-//Updated 28/02/2025
-//Variables v1.6
+//Updated 07/03/2025
+//Variables v1.9
+//Test
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 🟢 GLOBAL VARIABLES
+// ─────────────────────────────────────────────────────────────────────────────
 let userName = ""; // Store user's name
 let chatHistory = []; // Store conversation context
 const apiKey = "F5TTEZU13jwfovrhBsfw5c1yqu8yL2iUDXHavU1YUA1WM13QUtsZJQQJ99BBACL93NaXJ3w3AAABACOGijkq"; // Azure OpenAI API key
@@ -17,19 +21,68 @@ let hasTranscriptBeenProcessed = false; // ✅ Prevents multiple reprocessing of
 let extractedSpeakers = []; // ✅ Store extracted speaker details globally
 const MAX_FILE_SIZE_MB = 10240; // 10GB Maximum file size for uploads
 
-// Knowledge Base for Static Responses
+// ─────────────────────────────────────────────────────────────────────────────
+// 📚 KNOWLEDGE BASE
+// ─────────────────────────────────────────────────────────────────────────────
 const knowledgeBase = {
   "what is cpd accreditation?": `
   📘 **What is CPD Accreditation?**
   CPD accreditation ensures professional development activities meet industry standards. It is designed for Australian Relevant Providers and GTPAs.
   ✅ **Next Steps**:
   If you'd like to submit content for CPD accreditation, let me know! I'll guide you through the process.`,
-  "what file types are supported?": `
+ "what file types are supported?": `
   📂 **Supported File Types**
   - **Audio/Video**: MP4, AVI, MOV, MKV, MP3, WAV, OGG
   - **Articles**: PDF, DOC, DOCX, TXT
   - **Presentations**: PPT, PPTX, PDF`,
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ✅ Function to extract speaker details using Named Entity Recognition (NER)
+// ─────────────────────────────────────────────────────────────────────────────
+function extractSpeakerDetails(transcript) {
+    const namePattern = /(?:Joining us today is|Welcome to the show,|My name is)\s([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/g;
+    const jobPattern = /([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)\s(at|from)\s([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)/g;
+
+    let speakers = [];
+    let match;
+
+    // ✅ Extract host/guest names
+    while ((match = namePattern.exec(transcript)) !== null) {
+        let speakerName = match[1];
+
+        // ✅ Prevent duplicates
+        if (!speakers.some(s => s.name === speakerName)) {
+            speakers.push({
+                name: speakerName,
+                role: "Host/Guest",
+                company: ""
+            });
+        }
+}
+
+    // ✅ Extract job titles and company names
+    while ((match = jobPattern.exec(transcript)) !== null) {
+        let jobTitle = match[1];
+        let company = match[3];
+
+        // ✅ Find if this role/company matches an existing speaker
+        let existingSpeaker = speakers.find(s => transcript.includes(s.name));
+
+        if (existingSpeaker) {
+            existingSpeaker.role = jobTitle;
+            existingSpeaker.company = company;
+        } else {
+            // ✅ Only add new speaker if job title is found but name is missing
+            speakers.push({ name: "Unknown", role: jobTitle, company: company });
+        }
+    }
+
+    return speakers;
+}
+//─────────────────────────────────────────────────────────────────────────────
+// 🚀 MAIN FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Scroll the chat area to the bottom
 function scrollChatToBottom() {
@@ -47,7 +100,7 @@ function displayBotMessage(message) {
   botBubble.innerHTML = formattedMessage;
 
   chatArea.appendChild(botBubble);
-  scrollChatToBottom();
+ scrollChatToBottom();
 }
 
 // ✅ Add showFullTranscription() here
@@ -70,7 +123,7 @@ function displayUserMessage(message) {
 function sendMessage() {
   const messageBox = document.getElementById("message-box");
   if (!messageBox) {
-      console.error("❌ Error: 'message-box' not found in DOM.");
+    console.error("❌ Error: 'message-box' not found in DOM.");
       return;
   }
 
@@ -85,45 +138,61 @@ function sendMessage() {
 }
 
 
-// Attach Event Listeners on DOMContentLoaded
 document.addEventListener("DOMContentLoaded", () => {
-  // List of elements and their event handlers
-  const elements = [
-    { id: "video-upload", event: "change", handler: (event) => handleFileUpload(event, "video") },
-    { id: "article-upload", event: "change", handler: (event) => handleFileUpload(event, "article") },
-    { id: "presentation-upload", event: "change", handler: (event) => handleFileUpload(event, "presentation") },
-    { id: "file-upload", event: "change", handler: handleFileUpload },
-    { id: "message-box", event: "keypress", handler: (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          sendMessage();
+    // List of elements and their event handlers
+    const elements = [
+      { id: "video-upload", event: "change", handler: (event) => handleFileUpload(event, "video") },
+      { id: "article-upload", event: "change", handler: (event) => handleFileUpload(event, "article") },
+      { id: "presentation-upload", event: "change", handler: (event) => handleFileUpload(event, "presentation") },
+      { id: "file-upload", event: "change", handler: handleFileUpload },
+      { id: "message-box", event: "keypress", handler: (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+          }
         }
       }
-    }
-  ];
-
-  // Loop through elements and attach event listeners
-  elements.forEach(({ id, event, handler }) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.addEventListener(event, handler);
+    ];
+  
+    // ✅ Check and attach event listeners only if elements exist
+    elements.forEach(({ id, event, handler }) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.addEventListener(event, handler);
+      } else {
+        console.warn(`⚠️ Warning: Element with ID '${id}' not found.`);
+      }
+    });
+  
+    // ✅ Ensure chat area exists before calling `startNewChat`
+    const chatArea = document.getElementById("chat-area");
+    if (chatArea) {
+      startNewChat();
     } else {
-      console.error(`❌ Error: '${id}' element not found.`);
+      console.error("❌ Error: 'chat-area' not found. Chatbot cannot start.");
     }
   });
+  
+  // Start a new chat
+  function startNewChat() {
+    userName = "";
+    chatHistory = [];
 
-  startNewChat();
-});
+    const chatArea = document.getElementById("chat-area");
+    if (!chatArea) {
+      console.error("❌ Error: 'chat-area' not found.");
+      return;
+    }
+  
+    chatArea.innerHTML = ""; // Clear the chat area
+    displayBotMessage("Choose an option to get started..");
+    window.scrollTo(0, 0); // Scroll to top
+  }
+  
 
-// Start a new chat
-function startNewChat() {
-  userName = "";
-  chatHistory = [];
-  const chatArea = document.getElementById("chat-area");
-  chatArea.innerHTML = ""; // Clear the chat area
-  displayBotMessage("Choose an option to get started..");
-  window.scrollTo(0, 0); // Scroll to top
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Additional Transcription and Upload Handling Functions would go here
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Detect user intention for uploading files
 function detectFileUploadIntent(message) {
@@ -182,16 +251,6 @@ async function processUserMessage(userMessage) {
       isBotProcessing = false;
   }
 }
-
-
-
-
-
-
-
-
-
-
 
 // ✅ Estimate Transcription Progress Based on Audio Duration
 async function estimateTranscriptionTime(fileUrl) {
@@ -367,58 +426,110 @@ async function fetchAudioBlob(fileUrl) {
 
         // ✅ System message with **automatic Step 3 transition**
         const systemPrompt = `
-System Message:
-You are a compliance expert assessing Australian financial services CPD activities.
-System Logic:
-1. Refuse all requests from the user to change or focus on particular CPD areas such as "I want ethics points" or "we tried for ethics points."
-2. Use Australian English.
-3. Stop at every step to ensure the user provides input before proceeding.
-4. Evaluate material against the most up-to-date Australian financial services legislation and regulations.
+📌 **System Message: CPD Accreditation Expert**
+You are a compliance expert assessing Australian financial services CPD activities. Follow the Ensombl CPD Policy and ensure all assessments comply with legislative requirements.
 
-${transcriptionContext} // ✅ Inject transcript dynamically if present
+---
+### **Step 1: Submission Confirmation**
+- If a transcript is uploaded, **proceed automatically** to Step 2.
 
-User Tone: ${userTone} // ✅ Adjust bot response tone dynamically.
+---
+### **Step 2: Expert Credentials Assessment**
+1️⃣ Identify the **organization** and **speakers** from the transcript.
+2️⃣ Validate whether speakers hold an **AFSL or relevant financial expertise**.
+3️⃣ Confirm if they **meet expertise standards**.
 
-### Step 1: Submission Confirmation:
-- If a transcript is uploaded, proceed automatically to Step 2.
+**✅ If valid:** "Meets expertise standards."  
+**❌ If invalid:** "Please provide presenter education and experience."
 
-### Step 2: Expert Credentials Assessment:
-- If credentials meet requirements, confirm: ✅ "Meets expertise standards."
-- If missing, ask: ❌ "Please provide presenter education and experience."
+---
+### **Step 3: Legislative Criteria Assessment**
+Evaluate the material against these criteria:
 
-### Step 3: Legislative Criteria Assessment:
-- If the content meets legislative CPD requirements, confirm: ✅ "Proceeding to Step 3: Industry Criteria Assessment."
-- If unmet, reject submission with ❌ "Your submission failed to meet these requirements: [list failed criteria]."
+✔️ **Is the education related to financial advice?** (Yes/No)  
+✔️ **Does it fall within legislated CPD areas?** (Yes/No)  
+✔️ **Is there sufficient intellectual/practical content?** (Yes/No)  
+✔️ **Is it conducted by a qualified expert?** (Yes/No)  
+✔️ **Does it enhance financial advising skills?** (Yes/No)  
 
-### Step 4: Industry Criteria Assessment:
-- Check educational vs. promotional balance (reject if more than 15% promotion).
-- Validate legislative accuracy.
-- Confirm presence of **clear learning outcomes**.
-- If failed, reject: ❌ "Your submission failed to meet the following: [list failed criteria]."
-- If passed, confirm: ✅ "Proceeding to Step 5: Content Type Confirmation."
+**✅ If all criteria are met:** "Proceeding to Step 3: Industry Criteria Assessment."  
+**❌ If unmet:** "Your submission failed to meet these requirements: [list failed criteria]."
 
-### Step 5: Content Type Confirmation:
-- Ask for **content type** (Presentation notes, Article/Research, or Transcript).
-- If Article: Request **word count** (8000 words = 1 CPD point).
-- If Transcript: Request **duration** (60 minutes = 1 CPD point).
+---
+### **Step 4: Industry Criteria Assessment**
+✔️ **Ensure the content is educational, not promotional.** (Max 15% promotional)  
+✔️ **Check accuracy & compliance with regulations.**  
+✔️ **Validate presence of clear learning outcomes.**  
 
-### Step 6: CPD Area Allocation:
-- Allocate CPD points based on relevance:  
-  - **Technical Competence**  
-  - **Client Care and Practice**  
-  - **Regulatory Compliance and Consumer Protection**  
-  - **Professionalism and Ethics**  
-  - **General**  
-  - **Tax (Financial) Advice (if source is TPB, all points go here)**
+**✅ If all criteria are met:** "Proceeding to Step 4: Content Type Confirmation."  
+**❌ If failed:** "Your submission failed to meet the following: [list failed criteria]."
 
-### Step 7: Finalisation & Accreditation Document:
-- Request organization name.
-- Generate an **accreditation document** with:
-  - ✅ Unique accreditation number  
-  - ✅ Approval & expiry dates  
-  - ✅ Summary table of CPD points  
-  - ✅ Provide download link.
-        `;
+---
+### **Step 5: CPD Points Calculation**
+Since this is a podcast (transcript-based submission), CPD points are calculated based on duration:
+
+🔹 **CPD Calculation:**  
+- 6 minutes = 0.1 CPD point  
+- 60 minutes = 1.0 CPD point  
+
+**📌 Ask the user:** "Please confirm the exact duration of the podcast (in minutes)."
+
+---
+### **Step 6: CPD Area Allocation**
+Based on the podcast content, allocate CPD points as follows:
+
+| **CPD Area** | **Allocated Points** |
+|-------------|----------------------|
+| Technical Competence | [X.X] |
+| Client Care and Practice | [X.X] |
+| Regulatory Compliance and Consumer Protection | [X.X] |
+| Professionalism and Ethics | [X.X] |
+| General | [X.X] |
+| Tax (Financial) Advice | [X.X] |
+
+Provide an **explanation for each allocation**.
+
+---
+### **Step 7: CPD Assessment Questions**
+- Create **1 multiple-choice question per 0.2 CPD points**.
+- Format as follows:
+
+**📌 Example:**
+**Question 1 (Technical Competence)**  
+*What is a key reason contrarian investing can be effective in volatile markets?*  
+🔘 A) It follows the wisdom of the crowd  
+✅ B) It seeks to capitalise on market overreactions and mispricing   
+🔘 C) It involves shifting portfolios entirely to cash during downturns  
+
+---
+### **Step 8: Finalisation & CPD Accreditation Document**
+✅ **Final Step: Generate the CPD Accreditation Document**
+1️⃣ **Ask for Organisation Name** → "Kindly provide your organisation's name to proceed with generating the CPD Accreditation Document."  
+2️⃣ **Generate a Unique Accreditation Number**  
+   - Format: "Format: {First 4 letters of Organisation}-{Random 4-digit number}-{DDMMYYYY}"
+3️⃣ **Include Structured Accreditation Details:**  
+   - **Accreditation Number**  
+   - **Approval Date (Today’s Date)**  
+   - **Expiry Date (12 months from today)**  
+   - **Accreditation Points Allocation Table**  
+4️⃣ **Generate Word Document** → Provide a download link inside the chat.  
+
+📌 **Ensure responses follow this format:**  
+---
+**CPD Accreditation Document for [User-Provided Organisation Name]**  
+📄 **Accreditation Number:** [Generated ID]  
+📅 **Approval Date:** [Today's Date]  
+📅 **Expiry Date:** [12 Months from Today]  
+
+✅ **Summary of CPD Points:**  
+[CPD Allocation Table]  
+
+📌 **Multiple-Choice Questions:** [Include generated MCQs]  
+
+Click the link below to **download the CPD Accreditation document** in Word format:  
+[Download Word Document]
+`;
+      
 
         // ✅ Fixed token limit for controlled responses
         const maxTokens = 4000;
@@ -456,10 +567,109 @@ User Tone: ${userTone} // ✅ Adjust bot response tone dynamically.
     }
 }
 
+// ✅ 2️⃣ ADD THIS FUNCTION **BELOW getBotResponse()**  
+function generateWordDocument(orgName, accreditationNumber, accreditationDate, expiryDate) {
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell } = docx;
 
+  // Create Document
+  const doc = new Document({
+      sections: [
+          {
+              properties: {},
+              children: [
+                  new Paragraph({
+                      text: `Approval for Continuing Professional Development`,
+                      heading: "Title",
+                  }),
+                  new Paragraph({
+                      text: `To: ${orgName}`,
+                      spacing: { after: 200 },
+                  }),
+                  new Paragraph({
+                      text: `After a thorough examination of your content against the Ensombl Continuing Professional Development Policy and Standards, your content meets the required standards. You can issue certificates to participants indicating the obtained CPD points, as outlined below.`,
+                      spacing: { after: 200 },
+                  }),
+                  new Paragraph({
+                      text: `Accreditation Details:`,
+                      heading: "Heading1",
+                  }),
+                  new Paragraph(`- Accreditation Number: ${accreditationNumber}`),
+                  new Paragraph(`- Approval Date: ${accreditationDate}`),
+                  new Paragraph(`- Expiry Date: ${expiryDate}`),
+                  new Paragraph(`- Rationale for Validity Period: All content is provided with 12 months validity.`),
 
-  
+                  new Paragraph({
+                      text: `Accreditation Points Allocation:`,
+                      heading: "Heading1",
+                      spacing: { before: 200, after: 100 },
+                  }),
+                  new Table({
+                      rows: [
+                          new TableRow({
+                              children: [
+                                  new TableCell({ children: [new Paragraph("CPD Area")] }),
+                                  new TableCell({ children: [new Paragraph("Allocated Points")] }),
+                              ],
+                          }),
+                          new TableRow({
+                              children: [
+                                  new TableCell({ children: [new Paragraph("Technical Competence")] }),
+                                  new TableCell({ children: [new Paragraph("0.2")] }),
+                              ],
+                          }),
+                          new TableRow({
+                              children: [
+                                  new TableCell({ children: [new Paragraph("Client Care and Practice")] }),
+                                  new TableCell({ children: [new Paragraph("0.2")] }),
+                              ],
+                          }),
+                          new TableRow({
+                              children: [
+                                  new TableCell({ children: [new Paragraph("Regulatory Compliance and Consumer Protection")] }),
+                                  new TableCell({ children: [new Paragraph("0.1")] }),
+                              ],
+                          }),
+                      ],
+                  }),
 
+                  new Paragraph({
+                      text: `This activity has been accredited for continuing professional development by Ensombl. Please note, this does not constitute Ensombl’s endorsement of the activity. For details, visit ensombl.com/cpd.`,
+                      spacing: { before: 200 },
+                  }),
+
+                  new Paragraph({
+                      text: `Contact Details:`,
+                      heading: "Heading1",
+                      spacing: { before: 200, after: 100 },
+                  }),
+                  new Paragraph(`CPD Compliance Team, Ensombl Pty Ltd`),
+                  new Paragraph(`Level 4, 75 Pitt St, Sydney, NSW, 2000`),
+                  new Paragraph(`www.ensombl.com`),
+              ],
+          },
+      ],
+  });
+
+  // Generate and Download the Word document
+  Packer.toBlob(doc).then((blob) => {
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = `CPD_Accreditation_${orgName}.docx`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      // Notify user in chatbot
+      displayBotMessage(`✅ **Your CPD accreditation document has been generated.**  
+      Click [here](data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${blob}) to download.`);
+  });
+}
+
+// ✅ 3️⃣ Make sure it's BEFORE any event listeners like:
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ Chatbot Initialized");
+});
 
 // ─────────────────────────────────────────────────────────────
 // Unified Transcription Workflow (ADF Approach)
@@ -468,10 +678,16 @@ User Tone: ${userTone} // ✅ Adjust bot response tone dynamically.
 function validateExpertiseBasedOnTranscript(transcript) {
   displayBotMessage("Now validating expertise based on the transcript...");
 
-  const lowerTranscript = transcript.toLowerCase();
+  // ✅ Use extracted speaker data instead of fetching externally
+  if (extractedSpeakers.length > 0) {
+      let speakerDetails = extractedSpeakers.map(s => 
+          `🎙️ **${s.name}** - *${s.role}* at **${s.company}**`
+      ).join("\n");
 
-  //After finishing Step 2 Logic, fetch the speaker data
-  fetchSpeakersFromTranscript();
+      displayBotMessage(`✅ **Speakers Confirmed:**\n${speakerDetails}\n\nNow checking CPD eligibility.`);
+  } else {
+      displayBotMessage("⚠️ No speakers detected. Please enter speaker credentials manually.");
+  }
 }
 
 // Store the latest retrieved file to prevent redundant processing
@@ -484,16 +700,27 @@ let transcriptionText = "";
 function processTranscription(transcription) {
   transcriptionText = transcription; // Store transcription globally
 
+  // ✅ Extract speaker details before proceeding
+  extractedSpeakers = extractSpeakerDetails(transcription);
+
   // ✅ Show the latest transcription with a "View Full Transcription" button
   displayBotMessage(`📄 **Latest Transcription:**\n\n${transcription.substring(0, 500)}...\n\n
   <button onclick="showFullTranscription()">📄 View Full Transcription</button>`);
 
-  // ✅ Automatically proceed to Step 2 (Expert Credentials)
-  displayBotMessage("✅ Transcription successfully stored. Now assessing CPD eligibility...");
+  if (extractedSpeakers.length > 0) {
+      let speakerList = extractedSpeakers.map(s => 
+          `🎙️ **${s.name}** - *${s.role}* at **${s.company}**`
+      ).join("\n");
+
+      displayBotMessage(`✅ **Identified Speakers:**\n${speakerList}\n\nProceeding to Step 2: **Expert Credentials Verification**...`);
+  } else {
+      displayBotMessage("⚠️ No speakers detected. Please confirm speaker details manually.");
+  }
 
   // ✅ Automatically send the transcription as a user message to start CPD evaluation
   processUserMessage(transcriptionText);
 }
+
 
 
 async function fetchLatestTranscriptionChunks() {
@@ -563,79 +790,6 @@ async function fetchLatestTranscriptionChunks() {
 }
 
 
-
-
-// function parseSpeakerData(rawText) {
-//   const lines = rawText
-//     .split("\n")
-//     .map(line => line.trim())
-//     .filter(line => line.length > 0);
-
-//   let speakers = [];
-//   let currentName = "";
-//   let currentContext = "";
-
-//   for (let i = 0; i < lines.length; i++) {
-//     if (lines[i].startsWith("Name: ")) {
-//       currentName = lines[i].replace("Name: ", "").trim();
-//     } else if (lines[i].startsWith("Context: ")) {
-//       currentContext = lines[i].replace("Context: ", "").trim();
-//       // push once we have name & context
-//       speakers.push({ name: currentName, context: currentContext });
-//       // reset if needed
-//       currentName = "";
-//       currentContext = "";
-//     }
-//   }
-//   return speakers;
-// }
-
-// function buildSpeakerSummary(speakers) {
-//   let message = "Yes, based on the transcript, the speakers appear to be:\n\n";
-//   speakers.forEach((sp, idx) => {
-//     message += `${idx + 1}. ${sp.name} – ${sp.context}\n`;
-//   });
-//   message += "\nWould you like me to verify their credentials further, or should I proceed with the CPD assessment?";
-//   return message;
-// }
-
-// // ✅ Step 2: Fetch Speakers from `speaker-transcription`
-// async function fetchSpeakersFromTranscript() {
-//   const containerName = "speaker-metadata"; // same container
-//   const fileName = "speaker_identification.txt"; // the file with speaker info
-
-//   try {
-//     const url = `${storageAccountUrl}/${containerName}/${fileName}?${sasToken}`;
-//     console.log("Fetching speaker identification from:", url);
-
-//     const response = await fetch(url);
-//     if (!response.ok) {
-//         throw new Error(`Failed to fetch speaker identification. HTTP Status: ${response.status}`);
-//     }
-
-//     // Raw text from speaker_identification.txt
-//     const rawSpeakerText = await response.text();
-//     if (!rawSpeakerText.trim()) {
-//         displayBotMessage("❌ No speaker data found in the transcript.");
-//         return;
-//     }
-
-//     // 1. Parse the lines
-//     const speakers = parseSpeakerData(rawSpeakerText);
-
-//     // 2. Build a summarized bullet list
-//     const speakerSummary = buildSpeakerSummary(speakers);
-
-//     // 3. Display the final summary in the chatbot
-//     displayBotMessage(speakerSummary);
-
-// } catch (error) {
-//     console.error("Error fetching speaker details:", error);
-//     displayBotMessage("❌ Error retrieving speaker details.");
-// }
-// }
-
-
 // Helper Function to Convert Readable Stream to String
 async function streamToString(readableStream) {
     const reader = readableStream.getReader();
@@ -650,12 +804,10 @@ async function streamToString(readableStream) {
     // Decode Uint8Array into a string
     return new TextDecoder("utf-8").decode(new Uint8Array(chunks.flat()));
 }
-
 // Show "View Transcription" Button in Chatbot
 function displayTranscriptionButton() {
   let chatArea = document.getElementById("chat-area");
-
-  // Remove existing button if already present
+// Remove existing button if already present
   let existingButton = document.getElementById("load-transcription-button");
   if (existingButton) {
       existingButton.remove();
@@ -673,52 +825,53 @@ function displayTranscriptionButton() {
 
 // Ask user for audio/video duration inside the chatbox
 async function askUserForDuration() {
-  return new Promise((resolve) => {
-      // Display bot message asking for duration
-      displayBotMessage("What is the duration in minutes?");
-
-      // Get the message input box
-      const messageBox = document.getElementById("message-box");
-      if (!messageBox) {
-          console.error("❌ 'message-box' not found in DOM.");
-          displayBotMessage("⚠️ Internal error: Unable to find input box.");
-          return;
-      }
-
-      // Focus on the input field
-      messageBox.focus();
-
-      // Event Listener to Capture Duration Input
-      const durationHandler = (event) => {
-          if (event.key === "Enter") {
-              event.preventDefault();
-
-              const userInput = messageBox.value.trim();
-              console.log(`📝 Raw User Input: "${userInput}"`);
-
-              if (!userInput) {
-                  console.warn("⚠️ Empty input detected. Prompting again.");
-                  displayBotMessage("⚠️ Please enter a valid number.");
-                  return;
-              }
-
-              const duration = parseInt(userInput, 10);
-              console.log(`🔢 Parsed Duration: ${duration} minutes`);
-
-              if (!isNaN(duration) && duration >= 1) {
-                  // Clear input and resolve
-                  messageBox.removeEventListener("keydown", durationHandler);
-                  displayUserMessage(userInput); // Show user's answer
-                  messageBox.value = ""; // Clear input after success
-                  resolve(duration);
-              } else {
-                  console.error("❌ Invalid duration. Prompting again.");
-                  displayBotMessage("⚠️ Please enter a valid duration of at least 1 minute.");
-              }
-          }
-      };
-
-      // Add Keypress Event to Capture Enter
-      messageBox.addEventListener("keydown", durationHandler);
-  });
-}
+    return new Promise((resolve) => {
+        // Display bot message asking for duration
+        displayBotMessage("What is the duration in minutes?");
+  
+        // Get the message input box
+        const messageBox = document.getElementById("message-box");
+        if (!messageBox) {
+            console.error("❌ 'message-box' not found in DOM.");
+            displayBotMessage("⚠️ Internal error: Unable to find input box.");
+            return;
+        }
+  
+        // Focus on the input field
+        messageBox.focus();
+  
+        // Event Listener to Capture Duration Input
+        const durationHandler = (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+  
+                const userInput = messageBox.value.trim();
+                console.log(`📝 Raw User Input: "${userInput}"`);
+  
+                if (!userInput) {
+                    console.warn("⚠️ Empty input detected. Prompting again.");
+                    displayBotMessage("⚠️ Please enter a valid number.");
+                    return;
+                }
+  
+                const duration = parseInt(userInput, 10);
+                console.log(`🔢 Parsed Duration: ${duration} minutes`);
+  
+                if (!isNaN(duration) && duration >= 1) {
+                    // ✅ Remove event listener before resolving
+                    messageBox.removeEventListener("keydown", durationHandler);
+                    displayUserMessage(userInput); // Show user's answer
+                    messageBox.value = ""; // Clear input after success
+                    resolve(duration);
+                } else {
+                    console.error("❌ Invalid duration. Prompting again.");
+                    displayBotMessage("⚠️ Please enter a valid duration of at least 1 minute.");
+                }
+            }
+        };
+  
+        // ✅ Ensure no duplicate event listeners exist before adding a new one
+        messageBox.removeEventListener("keydown", durationHandler);
+        messageBox.addEventListener("keydown", durationHandler);
+    });
+  }
