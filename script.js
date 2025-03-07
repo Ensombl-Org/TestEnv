@@ -1,6 +1,6 @@
 //Jid Espenorio - Ensombl
-//Updated 06/03/2025
-//Variables v1.8
+//Updated 07/03/2025
+//Variables v1.9
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🟢 GLOBAL VARIABLES
@@ -29,7 +29,7 @@ const knowledgeBase = {
   CPD accreditation ensures professional development activities meet industry standards. It is designed for Australian Relevant Providers and GTPAs.
   ✅ **Next Steps**:
   If you'd like to submit content for CPD accreditation, let me know! I'll guide you through the process.`,
-  "what file types are supported?": `
+ "what file types are supported?": `
   📂 **Supported File Types**
   - **Audio/Video**: MP4, AVI, MOV, MKV, MP3, WAV, OGG
   - **Articles**: PDF, DOC, DOCX, TXT
@@ -40,37 +40,46 @@ const knowledgeBase = {
 // ✅ Function to extract speaker details using Named Entity Recognition (NER)
 // ─────────────────────────────────────────────────────────────────────────────
 function extractSpeakerDetails(transcript) {
-  const namePattern = /(?:Joining us today is|Welcome to the show,|My name is)\s([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/g;
-  const jobPattern = /([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)\s(at|from)\s([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)/g;
-  
-  let speakers = [];
-  let match;
+    const namePattern = /(?:Joining us today is|Welcome to the show,|My name is)\s([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)/g;
+    const jobPattern = /([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)\s(at|from)\s([A-Z][a-zA-Z]+(?:\s[A-Z][a-zA-Z]+)*)/g;
 
-  // ✅ Extract host/guest names
-  while ((match = namePattern.exec(transcript)) !== null) {
-      let speakerName = match[1];
-      speakers.push({ name: speakerName, role: "Host/Guest", company: "" });
-  }
+    let speakers = [];
+    let match;
 
-  // ✅ Extract job titles and company names
-  while ((match = jobPattern.exec(transcript)) !== null) {
-      let jobTitle = match[1];
-      let company = match[3];
-      
-      let existingSpeaker = speakers.find(s => transcript.includes(s.name));
-      if (existingSpeaker) {
-          existingSpeaker.role = jobTitle;
-          existingSpeaker.company = company;
-      } else {
-          speakers.push({ name: "Unknown", role: jobTitle, company: company });
-      }
-  }
+    // ✅ Extract host/guest names
+    while ((match = namePattern.exec(transcript)) !== null) {
+        let speakerName = match[1];
 
-  return speakers;
+        // ✅ Prevent duplicates
+        if (!speakers.some(s => s.name === speakerName)) {
+            speakers.push({
+                name: speakerName,
+                role: "Host/Guest",
+                company: ""
+            });
+        }
+ }
+
+    // ✅ Extract job titles and company names
+    while ((match = jobPattern.exec(transcript)) !== null) {
+        let jobTitle = match[1];
+        let company = match[3];
+
+        // ✅ Find if this role/company matches an existing speaker
+        let existingSpeaker = speakers.find(s => transcript.includes(s.name));
+
+        if (existingSpeaker) {
+            existingSpeaker.role = jobTitle;
+            existingSpeaker.company = company;
+        } else {
+            // ✅ Only add new speaker if job title is found but name is missing
+            speakers.push({ name: "Unknown", role: jobTitle, company: company });
+        }
+    }
+
+    return speakers;
 }
-
-
-// ─────────────────────────────────────────────────────────────────────────────
+//─────────────────────────────────────────────────────────────────────────────
 // 🚀 MAIN FUNCTIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -90,7 +99,7 @@ function displayBotMessage(message) {
   botBubble.innerHTML = formattedMessage;
 
   chatArea.appendChild(botBubble);
-  scrollChatToBottom();
+ scrollChatToBottom();
 }
 
 // ✅ Add showFullTranscription() here
@@ -442,7 +451,7 @@ Evaluate the material against these criteria:
 ✔️ **Check accuracy & compliance with regulations.**  
 ✔️ **Validate presence of clear learning outcomes.**  
 
-**✅ If met:** "Proceeding to Step 5: Content Type Confirmation."  
+**✅ If all criteria are met:** "Proceeding to Step 5: Content Type Confirmation."  
 **❌ If failed:** "Your submission failed to meet the following: [list failed criteria]."
 
 ---
@@ -485,7 +494,7 @@ Provide an **explanation for each allocation**.
 ---
 ### **Step 8: Finalisation & CPD Accreditation Document**
 ✅ **Final Step: Generate the CPD Accreditation Document**
-1️⃣ **Ask for Organisation Name** → "Please confirm the name of your organisation."  
+1️⃣ **Ask for Organisation Name** → "Kindly provide your organisation's name to proceed with generating the CPD Accreditation Document."  
 2️⃣ **Generate a Unique Accreditation Number**  
    - Format: "Format: {First 4 letters of Organisation}-{Random 4-digit number}-{DDMMYYYY}"
 3️⃣ **Include Structured Accreditation Details:**  
@@ -548,63 +557,40 @@ Click the link below to **download the CPD Accreditation document** in Word form
     }
 }
 
-async function generateWordDocument(orgName) {
-  // Ensure `docx` is available
-  if (typeof docx === "undefined") {
-      console.error("❌ Error: docx is not defined. Ensure the docx library is loaded.");
-      displayBotMessage("⚠️ Internal error: CPD document generation failed.");
-      return;
-  }
-
-  // Import docx objects
+// ✅ 2️⃣ ADD THIS FUNCTION **BELOW getBotResponse()**  
+function generateWordDocument(orgName, accreditationNumber, accreditationDate, expiryDate) {
   const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell } = docx;
 
-  // Generate Accreditation Number
-  let today = new Date();
-  let accreditationDate = today.toLocaleDateString("en-AU", { day: '2-digit', month: 'long', year: 'numeric' });
-
-  let expiryDate = new Date();
-  expiryDate.setFullYear(today.getFullYear() + 1);
-  let formattedExpiryDate = expiryDate.toLocaleDateString("en-AU", { day: '2-digit', month: 'long', year: 'numeric' });
-
-  const accreditationNumber = `${orgName.substring(0, 4).toUpperCase()}-${Math.floor(Math.random() * 9999)}-${today.getDate()}${today.getMonth() + 1}${today.getFullYear()}`;
-
-  // Create the Word document
+  // Create Document
   const doc = new Document({
       sections: [
           {
               properties: {},
               children: [
                   new Paragraph({
-                      children: [
-                          new TextRun({
-                              text: "Approval for Continuing Professional Development",
-                              bold: true,
-                              size: 32
-                          }),
-                      ],
+                      text: `Approval for Continuing Professional Development`,
+                      heading: "Title",
                   }),
                   new Paragraph({
-                      children: [new TextRun(`To: ${orgName}`)],
+                      text: `To: ${orgName}`,
                       spacing: { after: 200 },
                   }),
                   new Paragraph({
-                      text: "After a thorough examination of your content against the Ensombl Continuing Professional Development Policy and Standards, your content meets the required standards. You can issue certificates to participants indicating the obtained CPD points, as outlined below.",
+                      text: `After a thorough examination of your content against the Ensombl Continuing Professional Development Policy and Standards, your content meets the required standards. You can issue certificates to participants indicating the obtained CPD points, as outlined below.`,
                       spacing: { after: 200 },
                   }),
                   new Paragraph({
-                      text: "Accreditation Details:",
-                      bold: true,
-                      spacing: { after: 100 },
+                      text: `Accreditation Details:`,
+                      heading: "Heading1",
                   }),
                   new Paragraph(`- Accreditation Number: ${accreditationNumber}`),
                   new Paragraph(`- Approval Date: ${accreditationDate}`),
-                  new Paragraph(`- Expiry Date: ${formattedExpiryDate}`),
+                  new Paragraph(`- Expiry Date: ${expiryDate}`),
                   new Paragraph(`- Rationale for Validity Period: All content is provided with 12 months validity.`),
 
                   new Paragraph({
-                      text: "Accreditation Points Allocation:",
-                      bold: true,
+                      text: `Accreditation Points Allocation:`,
+                      heading: "Heading1",
                       spacing: { before: 200, after: 100 },
                   }),
                   new Table({
@@ -637,13 +623,13 @@ async function generateWordDocument(orgName) {
                   }),
 
                   new Paragraph({
-                      text: "This activity has been accredited for continuing professional development by Ensombl. Please note, this does not constitute Ensombl’s endorsement of the activity. For details, visit ensombl.com/cpd.",
+                      text: `This activity has been accredited for continuing professional development by Ensombl. Please note, this does not constitute Ensombl’s endorsement of the activity. For details, visit ensombl.com/cpd.`,
                       spacing: { before: 200 },
                   }),
 
                   new Paragraph({
-                      text: "Contact Details:",
-                      bold: true,
+                      text: `Contact Details:`,
+                      heading: "Heading1",
                       spacing: { before: 200, after: 100 },
                   }),
                   new Paragraph(`CPD Compliance Team, Ensombl Pty Ltd`),
@@ -654,9 +640,8 @@ async function generateWordDocument(orgName) {
       ],
   });
 
-  // ✅ Generate and download the document
-  try {
-      const blob = await Packer.toBlob(doc);
+  // Generate and Download the Word document
+  Packer.toBlob(doc).then((blob) => {
       const url = URL.createObjectURL(blob);
       const downloadLink = document.createElement("a");
       downloadLink.href = url;
@@ -665,14 +650,16 @@ async function generateWordDocument(orgName) {
       downloadLink.click();
       document.body.removeChild(downloadLink);
 
+      // Notify user in chatbot
       displayBotMessage(`✅ **Your CPD accreditation document has been generated.**  
-      Click <a href="${url}" target="_blank">here</a> to download.`);
-  } catch (error) {
-      console.error("❌ Error generating Word document:", error);
-      displayBotMessage("⚠️ CPD Accreditation document generation failed.");
-  }
+      Click [here](data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${blob}) to download.`);
+  });
 }
 
+// ✅ 3️⃣ Make sure it's BEFORE any event listeners like:
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ Chatbot Initialized");
+});
 
 // ─────────────────────────────────────────────────────────────
 // Unified Transcription Workflow (ADF Approach)
@@ -807,12 +794,10 @@ async function streamToString(readableStream) {
     // Decode Uint8Array into a string
     return new TextDecoder("utf-8").decode(new Uint8Array(chunks.flat()));
 }
-
 // Show "View Transcription" Button in Chatbot
 function displayTranscriptionButton() {
   let chatArea = document.getElementById("chat-area");
-
-  // Remove existing button if already present
+// Remove existing button if already present
   let existingButton = document.getElementById("load-transcription-button");
   if (existingButton) {
       existingButton.remove();
@@ -874,14 +859,7 @@ async function askUserForDuration() {
               }
           }
       };
-    
-      // Add Keypress Event to Capture Enter
+//Add Keypress Event to Capture Enter
       messageBox.addEventListener("keydown", durationHandler);
   });
 }
-
-// ✅ `DOMContentLoaded` should be **outside** any function
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ Chatbot Initialized");
-});
-
