@@ -90,18 +90,38 @@ function scrollChatToBottom() {
   chatArea.scrollTop = chatArea.scrollHeight; // Scroll to the bottom
 }
 
+
 // Display bot message
 function displayBotMessage(message) {
   const chatArea = document.getElementById("chat-area");
   const botBubble = document.createElement("div");
   botBubble.classList.add("chat-bubble", "bot-message");
 
-  const formattedMessage = message.split("\n").map((line) => `<p>${line}</p>`).join("");
-  botBubble.innerHTML = formattedMessage;
+  // ✅ Converts **bold** Markdown to HTML <b>bold</b>
+  const formattedMessage = message
+      .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>") // **bold** → <b>bold</b>
+      .replace(/\*(.*?)\*/g, "<i>$1</i>") // *italic* → <i>italic</i>
+      .split("\n").map((line) => `<p>${line}</p>`).join("");
 
-  chatArea.appendChild(botBubble);
- scrollChatToBottom();
+  botBubble.innerHTML = formattedMessage;
+  
+  // // ✅ Force Gilroy Light for normal text
+  // botBubble.style.fontFamily = "'GilroyExtraBold', Arial, sans-serif";
+  // botBubble.style.fontWeight = "300";
+
+   // ✅ Assign different fonts based on message type
+   if (message.includes("step")) {
+    botBubble.style.fontFamily = "'Gilroy ExtraBold', Arial, sans-serif";
+    botBubble.style.fontWeight = "800";
+} else {
+    botBubble.style.fontFamily = "'Gilroy Light', Arial, sans-serif";
+    botBubble.style.fontWeight = "300";
 }
+  chatArea.appendChild(botBubble);
+  scrollChatToBottom();
+}
+
+
 
 // ✅ Add showFullTranscription() here
 function showFullTranscription() {
@@ -323,8 +343,6 @@ async function startTranscription() {
 // End of Consolidated startTranscription Workflow
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Removed duplicate definitions of startTranscription and direct Speech SDK branch
-
 // (The existing transcribeAudioWithSpeechSDK function remains unchanged,
 // but it is no longer called from processUserMessage.)
 
@@ -413,7 +431,9 @@ async function fetchAudioBlob(fileUrl) {
     }
 }
 
-  // Fetch dynamic bot response
+  // Fetch dynamic bot 
+  let cpdDuration = null; // Default to null until the user provides a value
+  
   async function getBotResponse(userMessage, userTone = "formal") {
     try {
         const headers = { "Content-Type": "application/json", "api-key": apiKey };
@@ -434,8 +454,8 @@ You are a compliance expert assessing Australian financial services CPD activiti
 - If a transcript is uploaded, **proceed automatically** to Step 2.
 
 ---
-### **Step 2: Expert Credentials Assessment**
-1️⃣ Identify the **organization** and **speakers** from the transcript.
+<b>Step 2: Expert Credentials Assessment</b>
+1️⃣ Identify the <b>Organization</b> and <b>Speakers</b> from the transcript.
 2️⃣ Validate whether speakers hold an **AFSL or relevant financial expertise**.
 3️⃣ Confirm if they **meet expertise standards**.
 
@@ -452,7 +472,7 @@ Evaluate the material against these criteria:
 ✔️ **Is it conducted by a qualified expert?** (Yes/No)  
 ✔️ **Does it enhance financial advising skills?** (Yes/No)  
 
-**✅ If all criteria are met:** "Proceeding to Step 3: Industry Criteria Assessment."  
+**✅ If all criteria are met:** "✅ Proceeding automatically to Step 4: Industry Criteria Assessment."  
 **❌ If unmet:** "Your submission failed to meet these requirements: [list failed criteria]."
 
 ---
@@ -461,7 +481,7 @@ Evaluate the material against these criteria:
 ✔️ **Check accuracy & compliance with regulations.**  
 ✔️ **Validate presence of clear learning outcomes.**  
 
-**✅ If all criteria are met:** "Proceeding to Step 4: Content Type Confirmation."  
+**✅ If all criteria are met:** "Proceeding to Step 3: Content Type Confirmation."  
 **❌ If failed:** "Your submission failed to meet the following: [list failed criteria]."
 
 ---
@@ -472,20 +492,20 @@ Since this is a podcast (transcript-based submission), CPD points are calculated
 - 6 minutes = 0.1 CPD point  
 - 60 minutes = 1.0 CPD point  
 
-**📌 Ask the user:** "Please confirm the exact duration of the podcast (in minutes)."
+**User-provided Duration:** ${duration} minutes
 
 ---
 ### **Step 6: CPD Area Allocation**
 Based on the podcast content, allocate CPD points as follows:
 
-| **CPD Area** | **Allocated Points** |
-|-------------|----------------------|
-| Technical Competence | [X.X] |
-| Client Care and Practice | [X.X] |
-| Regulatory Compliance and Consumer Protection | [X.X] |
-| Professionalism and Ethics | [X.X] |
-| General | [X.X] |
-| Tax (Financial) Advice | [X.X] |
+**CPD Area** -  **Allocated Points** 
+Technical Competence - [X.X] 
+Client Care and Practice - [X.X]
+Regulatory Compliance and Consumer Protection - [X.X]
+Professionalism and Ethics - [X.X]
+General - [X.X]
+Tax (Financial) Advice - [X.X]
+Total - [X.X]
 
 Provide an **explanation for each allocation**.
 
@@ -512,11 +532,11 @@ Provide an **explanation for each allocation**.
    - **Approval Date (Today’s Date)**  
    - **Expiry Date (12 months from today)**  
    - **Accreditation Points Allocation Table**  
-4️⃣ **Generate Word Document** → Provide a download link inside the chat.  
+4️⃣ **Present the CPD Accreditation Summary directly in the chat.**  
 
 📌 **Ensure responses follow this format:**  
 ---
-**CPD Accreditation Document for [User-Provided Organisation Name]**  
+**CPD Accreditation Summary for [User-Provided Organisation Name]**  
 📄 **Accreditation Number:** [Generated ID]  
 📅 **Approval Date:** [Today's Date]  
 📅 **Expiry Date:** [12 Months from Today]  
@@ -526,149 +546,48 @@ Provide an **explanation for each allocation**.
 
 📌 **Multiple-Choice Questions:** [Include generated MCQs]  
 
-Click the link below to **download the CPD Accreditation document** in Word format:  
-[Download Word Document]
 `;
       
 
-        // ✅ Fixed token limit for controlled responses
-        const maxTokens = 4000;
+const maxTokens = 4000;
 
-        const body = {
-            messages: [
-                { role: "system", content: systemPrompt }, // ✅ System message first
-                ...chatHistory, // ✅ Keep conversation history
-            ],
-            max_tokens: maxTokens,
-            temperature: 0.7,
-            frequency_penalty: 0.3,
-            presence_penalty: 0.2,
-        };
+const body = {
+    messages: [
+        { role: "system", content: systemPrompt },
+        ...chatHistory,
+    ],
+    max_tokens: maxTokens,
+    temperature: 0.7,
+    frequency_penalty: 0.3,
+    presence_penalty: 0.2,
+};
 
-        const response = await fetch(apiUrl, { method: "POST", headers, body: JSON.stringify(body) });
-        if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+const response = await fetch(apiUrl, { method: "POST", headers, body: JSON.stringify(body) });
+if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
 
-        const data = await response.json();
-        const botResponse = data.choices[0].message.content.trim();
+const data = await response.json();
+let botResponse = data.choices[0].message.content.trim();
 
-        // ✅ Update conversation history
-        chatHistory.push({ role: "assistant", content: botResponse });
+// ✅ Update conversation history
+chatHistory.push({ role: "assistant", content: botResponse });
 
-        // ✅ Ensure automatic progression if transcript is used
-        if (transcriptionText && !hasTranscriptBeenProcessed) {
-            hasTranscriptBeenProcessed = true; // Prevent double processing
-            return botResponse + "\n\n✅ **Proceeding to Step 3: Industry Criteria Assessment...**";
-        }
-
-        return botResponse;
-    } catch (error) {
-        console.error("Error fetching bot response:", error);
-        return "❌ **An error occurred. Please try again later.**";
-    }
+// ✅ Detect and trigger the next step automatically
+if (botResponse.includes("Proceeding automatically to Step 4")) {
+    setTimeout(() => getBotResponse(""), 1000); // Move to Step 4
+} else if (botResponse.includes("Proceeding automatically to Step 5")) {
+    setTimeout(() => getBotResponse(""), 1000); // Move to Step 5
 }
 
-// ✅ 2️⃣ ADD THIS FUNCTION **BELOW getBotResponse()**  
-function generateWordDocument(orgName, accreditationNumber, accreditationDate, expiryDate) {
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell } = docx;
-
-  // Create Document
-  const doc = new Document({
-      sections: [
-          {
-              properties: {},
-              children: [
-                  new Paragraph({
-                      text: `Approval for Continuing Professional Development`,
-                      heading: "Title",
-                  }),
-                  new Paragraph({
-                      text: `To: ${orgName}`,
-                      spacing: { after: 200 },
-                  }),
-                  new Paragraph({
-                      text: `After a thorough examination of your content against the Ensombl Continuing Professional Development Policy and Standards, your content meets the required standards. You can issue certificates to participants indicating the obtained CPD points, as outlined below.`,
-                      spacing: { after: 200 },
-                  }),
-                  new Paragraph({
-                      text: `Accreditation Details:`,
-                      heading: "Heading1",
-                  }),
-                  new Paragraph(`- Accreditation Number: ${accreditationNumber}`),
-                  new Paragraph(`- Approval Date: ${accreditationDate}`),
-                  new Paragraph(`- Expiry Date: ${expiryDate}`),
-                  new Paragraph(`- Rationale for Validity Period: All content is provided with 12 months validity.`),
-
-                  new Paragraph({
-                      text: `Accreditation Points Allocation:`,
-                      heading: "Heading1",
-                      spacing: { before: 200, after: 100 },
-                  }),
-                  new Table({
-                      rows: [
-                          new TableRow({
-                              children: [
-                                  new TableCell({ children: [new Paragraph("CPD Area")] }),
-                                  new TableCell({ children: [new Paragraph("Allocated Points")] }),
-                              ],
-                          }),
-                          new TableRow({
-                              children: [
-                                  new TableCell({ children: [new Paragraph("Technical Competence")] }),
-                                  new TableCell({ children: [new Paragraph("0.2")] }),
-                              ],
-                          }),
-                          new TableRow({
-                              children: [
-                                  new TableCell({ children: [new Paragraph("Client Care and Practice")] }),
-                                  new TableCell({ children: [new Paragraph("0.2")] }),
-                              ],
-                          }),
-                          new TableRow({
-                              children: [
-                                  new TableCell({ children: [new Paragraph("Regulatory Compliance and Consumer Protection")] }),
-                                  new TableCell({ children: [new Paragraph("0.1")] }),
-                              ],
-                          }),
-                      ],
-                  }),
-
-                  new Paragraph({
-                      text: `This activity has been accredited for continuing professional development by Ensombl. Please note, this does not constitute Ensombl’s endorsement of the activity. For details, visit ensombl.com/cpd.`,
-                      spacing: { before: 200 },
-                  }),
-
-                  new Paragraph({
-                      text: `Contact Details:`,
-                      heading: "Heading1",
-                      spacing: { before: 200, after: 100 },
-                  }),
-                  new Paragraph(`CPD Compliance Team, Ensombl Pty Ltd`),
-                  new Paragraph(`Level 4, 75 Pitt St, Sydney, NSW, 2000`),
-                  new Paragraph(`www.ensombl.com`),
-              ],
-          },
-      ],
-  });
-
-  // Generate and Download the Word document
-  Packer.toBlob(doc).then((blob) => {
-      const url = URL.createObjectURL(blob);
-      const downloadLink = document.createElement("a");
-      downloadLink.href = url;
-      downloadLink.download = `CPD_Accreditation_${orgName}.docx`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-
-      // Notify user in chatbot
-      displayBotMessage(`✅ **Your CPD accreditation document has been generated.**  
-      Click [here](data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${blob}) to download.`);
-  });
+return botResponse;
+} catch (error) {
+console.error("Error fetching bot response:", error);
+return "❌ **An error occurred. Please try again later.**";
+}
 }
 
-// ✅ 3️⃣ Make sure it's BEFORE any event listeners like:
+// ✅ Ensure chatbot initializes correctly
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ Chatbot Initialized");
+console.log("✅ Chatbot Initialized");
 });
 
 // ─────────────────────────────────────────────────────────────
