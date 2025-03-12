@@ -1,4 +1,3 @@
-/****styles.css BACKUP****/
 /* ===========================
    🌐 General Styles
 =========================== */
@@ -34,8 +33,9 @@ body {
 /* ===========================
    🌐 Headings
 =========================== */
-h1 {
-  font-family: 'Roboto', sans-serif;
+h1, h2, h3 {
+  font-family: 'Gilroy ExtraBold', sans-serif;
+  font-weight: 800;
   color: #2b2b2b; /*** Change heading color if desired ***/
 }
 
@@ -58,18 +58,21 @@ h1 {
   gap: 10px;
 }
 
-.brand-logo {
+/* .brand-logo {
   width: 180px;  /*** Change logo size here ***/
-  height: auto;
-  /* Ensure your logo image is transparent to avoid an unwanted white box */
-}
+  /* height: auto; */
+  /* Ensure your logo image is transparent to avoid an unwanted white box 
+} */
 
 .btn.new-cpd {
   background-color: #2e7aff; /*** Button background color ***/
   color: #fff;              /*** Button text color ***/
   border: none;
-  padding: 10px 25px;       /*** Adjust button padding if desired | Adjust padding for a more elongated shape ***/
-  border-radius: 50px;    /*** This creates the capsule shape ***/
+  position: absolute; /* Position it freely */
+  left: 20px; /* Move it to the left */
+  top: 20px; /* Adjust as needed */
+  padding: 10px 15px;       /*** Adjust button padding if desired | Adjust padding for a more elongated shape ***/
+  border-radius: 10px;    /*** This creates the capsule shape ***/
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s ease;
@@ -82,25 +85,38 @@ h1 {
 /* ===========================
    🌐 Hero Section
 =========================== */
-.hero-section {
-  text-align: center;  /*** Centers inline elements: <h1>, <img>, <p> ***/
-  background-color: var(--primary-bg-color) !important; /*** Hero background color (white) ***/
-  padding: 60px 20px;  /*** Adjust padding for hero section ***/
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 40px;
 }
 
+/* ✅ Ensure logo & title align properly */
+.logo-title-container {
+  display: flex;           /* Align items in a row */
+  align-items: center;     /* Vertically center logo & text */
+  justify-content: center; /* Center the entire container */
+  gap: 12px;               /* Space between logo & text */
+  margin-top: 20px;
+}
+
+/* ✅ Adjust logo size */
 .hero-icon {
-  display: block;           /*** Makes the icon block-level for centering ***/
-  margin: 0 auto 20px;      /*** Centers the icon and adds bottom margin ***/
-  width: 80px;              /*** Adjust size of the hero icon ***/
+  width: 50px;  /* Adjust based on logo size */
   height: auto;
 }
 
+/* ✅ Adjust title spacing */
 .hero-title {
-  font-size: 2.5rem;        /*** Main heading size; change as needed ***/
-  color: #2b2b2b;           /*** Main heading color ***/
-  margin-bottom: 10px;      /*** Spacing below heading ***/
-  text-align: center !important; /*** Force center alignment ***/
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #2b2b2b;
+  margin: 0;
 }
+
 
 .hero-subtitle {
   text-align: center;  /* Ensures both lines are centered */
@@ -110,15 +126,181 @@ h1 {
   color: #555;
 }
 
+/* =========================
+   📂 Sidebar Styles 
+========================= */
+/* =========================
+   📂 Sidebar Styles - Improved
+========================= */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 250px; /* Sidebar width */
+  height: 100vh; /* Full height */
+  background-color: #ffffff !important; /* White background */
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* Sidebar shadow */
+  border-right: 1px solid #ddd; /* Light gray separator */
+}
+
+/* ✅ Adjust Main Content */
+.main-content {
+  margin-left: 250px; /* Matches sidebar width */
+  padding: 20px;
+}
+
+/* ✅ Sidebar "New CPD" Button */
+.sidebar .btn.new-cpd {
+  width: 100%;
+  background-color: #2e7aff; /* Blue */
+  color: #fff;
+  font-weight: bold;
+  padding: 12px;
+  text-align: center; /* Center align */
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+  margin-bottom: 15px;
+}
+
+.sidebar .btn.new-cpd:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+
+/* ✅ Sidebar Menu Container */
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Spacing between items */
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* ✅ Sidebar Section Title */
+.sidebar h3 {
+  font-size: 14px;
+  font-weight: bold;
+  color: #666;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+/* ✅ Ensure "Upload" section is directly below the button */
+.upload-container {
+  width: 100%;
+  margin-top: 10px; /* Adds spacing between New CPD and Upload */
+}
+
+/* Upload Toggle */
+.upload-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 10px;
+}
+
+.upload-toggle i,
+.upload-toggle img {
+  width: 14px; /* Ensures chevron is small */
+  height: auto;
+}
+
+/* Upload options - Hidden by default */
+.upload-options {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+/* Ensure Upload buttons are full width */
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  width: 100%;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out, box-shadow 0.2s ease-in-out;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.sidebar-btn:hover {
+  background-color: #f0f0f0;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+/* ✅ Sidebar Icons */
+.sidebar-btn .icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* ✅ Fix for last button ("Presentation") */
+.sidebar-menu .sidebar-btn:last-child {
+  margin-bottom: 0; /* Prevent extra spacing */
+}
+
+/* ✅ Prevent main content from overlapping */
+body {
+  margin-left: 250px;
+}
+
+/* ✅ Upload Section Toggle */
+.upload-toggle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Ensures the arrow aligns to the right */
+  gap: 8px;
+  padding: 10px;
+  border-radius: 6px;
+  transition: background 0.3s ease-in-out;
+}
+
+/* 🔹 Arrow Icon Transition */
+.upload-toggle i {
+  transition: transform 0.3s ease-in-out;
+}
+
+
 /* ===========================
    🎨 Custom Font Face
 =========================== */
 @font-face {
   font-family: 'Gilroy ExtraBold';
-  src: url('https://nexgenstorage.blob.core.windows.net/$web/Resources/Font/GilroyExtraBold.ttf') format('truetype');
+  src: url('https://storagetestnexgen.blob.core.windows.net/$web/Resources/Font/GILROY EXTRABOLD (1).ttf') format('truetype');
   font-weight: 800;
   font-style: normal;
 }
+
+@font-face {
+  font-family: 'Gilroy Light';
+  src: url('https://storagetestnexgen.blob.core.windows.net/$web/Resources/Font/Gilroy-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
 
 /* ===========================
    🔤 CPD Heading Style
@@ -185,94 +367,63 @@ h1 {
 
 
 /* ===========================
-   Cards Container
-=========================== */
-.cards-container {
-  display: flex;
-  justify-content: center;  /* centers the cards horizontally */
-  gap: 20px;                /* space between cards */
-  flex-wrap: wrap;          /* wrap on smaller screens */
-  margin-top: 40px;         /* space above the container */
-}
-
-/* Individual card style */
-.upload-card {
-  background-color: #ffffff;
-  width: 220px;
-  padding: 20px;
-  border-radius: 8px;
-  /* Remove or override any center alignment here */
-  text-align: left; /* Align text to the left */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  cursor: pointer;         /* Cursor pointer for the entire label */
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.upload-card:hover {
-  background-color: #81818171; /* Change this to your desired hover color */
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* bigger shadow on hover */
-}
-
-.upload-card h3,
-.upload-card p {
-  margin: 0 0 5px; /* Basic spacing */
-}
-
-/* Logo/icon styling inside the card */
-.card-icon {
-  width: 80px;         /* Same width and height => a square */
-  height: 80px;        /* Force the image to be square */
-  object-fit: cover;   /* Ensures image scales/crops properly */
-  border-radius: 15px; /* Adjust radius for more/less roundness */
-  margin-bottom: 10px;
-}
-
-
-/* Card heading */
-.upload-card h3 {
-  font-size: 1.1rem;
-  margin-bottom: 5px;
-  color: #2b2b2b;
-}
-
-/* Card description text */
-.upload-card p {
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 10px;
-}
-
-
-/* ===========================
    💬 Chat Area Styles
 =========================== */
 #chat-area {
   background-color: var(--secondary-bg-color); /*** Chat area background (white) ***/
-  padding: 10px;
+  /* padding: 10px;
   border-radius: 10px;
   border: 1px solid #ddd;  /*** Chat area border ***/
-  height: 400px;           /*** Adjust height as needed ***/
+  /* height: 400px;           /*** Adjust height as needed ***/
+  /* overflow-y: auto;
+  display: flex;
+  flex-direction: column; */
+
+  margin: auto;
+  padding: 15px;
+  border: 1px solid #ddd;
+  height: 600px; /* Adjust height if needed */
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  
+  /* ✅ Set width to 90% to make it wider */
+  width: 100%;
+  max-width: 100%; /* Increase the max width */
 }
+
+
 
 /* Chat bubbles */
 .chat-bubble {
-  margin-bottom: 10px;
+  font-family: 'Gilroy Light', Arial, sans-serif; /* Default font */
+  font-size: 16px;
+  color: var(--primary-text-color);
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 6px;
+  
+    line-height: 1.5;
+  /* margin-bottom: 10px;
   padding: 10px 15px;
   border-radius: 10px;
   word-wrap: break-word;
   overflow-wrap: break-word;
   line-height: 1.5;
-  box-shadow: var(--chat-bubble-shadow); /*** Change shadow if desired ***/
+  box-shadow: var(--chat-bubble-shadow); ** Change shadow if desired ** */
 }
 
 /* User Message Bubble */
 .user-message {
+  font-family: 'Gilroy Light', Arial, sans-serif;
+  font-weight: 300;
+  font-size: 16px;
   background-color: var(--user-message-bg);
   color: #2b2b2b;
-  text-align: right;
+  text-align: left;
   align-self: flex-end;
   max-width: 70%;
   padding: 10px 15px;
@@ -284,9 +435,12 @@ h1 {
 }
 
 /* Bot Message Bubble */
-.bot-message {
-  background-color: var(--bot-message-bg);
+.bot-message b {
+  font-family: 'Gilroy ExtraBold', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
   color: #212529;
+  /* background-color: var(--bot-message-bg);
   text-align: left;
   align-self: flex-start;
   max-width: 100%;
@@ -295,7 +449,12 @@ h1 {
   margin: 5px 0;
   clear: both;
   float: left;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); */
+}
+
+.bold {
+  font-weight: bold;
+  color: #000; /* Ensures text stands out */
 }
 
 /* ===========================
