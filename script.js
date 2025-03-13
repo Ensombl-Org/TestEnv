@@ -1,6 +1,6 @@
 //Jid Espenorio - Ensombl
 //Updated 07/03/2025
-//Variables v1.9
+//Variables v1.9.1
 //Test
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18,6 +18,8 @@ const speechRegion = "australiaeast";
 let isBotProcessing = false; // Prevent overlapping responses
 let lastUploadedFileUrl = ""; // Store last uploaded file URL for transcription
 let hasTranscriptBeenProcessed = false; // ✅ Prevents multiple reprocessing of 
+let duration = null;  // Ensure duration is accessible across functions
+let cpdDuration = null; // Default to null until the user provides a value
 let extractedSpeakers = []; // ✅ Store extracted speaker details globally
 const MAX_FILE_SIZE_MB = 10240; // 10GB Maximum file size for uploads
 
@@ -159,41 +161,59 @@ function sendMessage() {
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    // List of elements and their event handlers
-    const elements = [
+  // List of elements and their event handlers
+  const elements = [
       { id: "video-upload", event: "change", handler: (event) => handleFileUpload(event, "video") },
       { id: "article-upload", event: "change", handler: (event) => handleFileUpload(event, "article") },
       { id: "presentation-upload", event: "change", handler: (event) => handleFileUpload(event, "presentation") },
-      { id: "file-upload", event: "change", handler: handleFileUpload },
       { id: "message-box", event: "keypress", handler: (event) => {
           if (event.key === "Enter") {
-            event.preventDefault();
-            sendMessage();
+              event.preventDefault();
+              sendMessage();
           }
-        }
-      }
-    ];
-  
-    // ✅ Check and attach event listeners only if elements exist
-    elements.forEach(({ id, event, handler }) => {
+      }}
+  ];
+
+  // ✅ Attach event listeners only if elements exist
+  elements.forEach(({ id, event, handler }) => {
       const element = document.getElementById(id);
       if (element) {
-        element.addEventListener(event, handler);
+          element.addEventListener(event, handler);
       } else {
-        console.warn(`⚠️ Warning: Element with ID '${id}' not found.`);
+          console.warn(`⚠️ Warning: Element with ID '${id}' not found.`);
       }
-    });
-  
-    // ✅ Ensure chat area exists before calling `startNewChat`
-    const chatArea = document.getElementById("chat-area");
-    if (chatArea) {
-      startNewChat();
-    } else {
-      console.error("❌ Error: 'chat-area' not found. Chatbot cannot start.");
-    }
   });
+
+  // ✅ Ensure chat area exists before calling `startNewChat`
+  const chatArea = document.getElementById("chat-area");
+  if (chatArea) {
+      startNewChat();
+  } else {
+      console.error("❌ Error: 'chat-area' not found. Chatbot cannot start.");
+  }
+});
+
+
+
+function toggleUploadMenu() {
+  const uploadOptions = document.getElementById("upload-options");
+  const uploadArrow = document.getElementById("upload-arrow");
+
+  if (uploadOptions.style.display === "none" || uploadOptions.style.display === "") {
+    uploadOptions.style.display = "block";
+    uploadArrow.classList.remove("fa-chevron-down");
+    uploadArrow.classList.add("fa-chevron-up");
+  } else {
+    uploadOptions.style.display = "none";
+    uploadArrow.classList.remove("fa-chevron-up");
+    uploadArrow.classList.add("fa-chevron-down");
+  }
+}
+
+
   
-  // Start a new chat
+  
+ // Start a new chat
   function startNewChat() {
     userName = "";
     chatHistory = [];
@@ -209,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.scrollTo(0, 0); // Scroll to top
   }
   
-
+  
 // ─────────────────────────────────────────────────────────────────────────────
 // Additional Transcription and Upload Handling Functions would go here
 // ─────────────────────────────────────────────────────────────────────────────
@@ -431,8 +451,43 @@ async function fetchAudioBlob(fileUrl) {
     }
 }
 
+
+function extractDuration(userMessage) {
+  let durationMatch = userMessage.match(/\b\d{1,3}\b/); // Extract numbers (1-3 digits)
+
+  if (durationMatch) { 
+      cpdDuration = parseInt(durationMatch[0], 10); // Store parsed duration globally
+      console.log("✅ Parsed Duration:", cpdDuration, "minutes");
+
+      // ✅ Display confirmation in chat with both raw and parsed input
+      displayBotMessage(`✅ **You entered: ${userMessage}**\n✅ **Parsed as: ${cpdDuration} minutes**\n✅ **Proceeding to CPD calculation...**`);
+  }
+}
+
+
+function displayCPDCalculation() {
+  if (cpdDuration) {
+      let cpdPoints = (cpdDuration / 60).toFixed(1); // Convert minutes to CPD points
+      
+      displayBotMessage(`
+      ### **Step 5: CPD Points Calculation**  
+      ✅ **Duration Provided:** ${cpdDuration} minutes  
+      ✅ **Calculated CPD Points:** ${cpdPoints} points  
+      ✅ **Proceeding automatically to Step 6: CPD Area Allocation...**
+      `);
+  } else {
+      displayBotMessage(`
+      ### **Step 5: CPD Points Calculation**  
+      ❌ **Duration Provided:** Not explicitly stated  
+      ❌ Please provide the duration of the podcast in minutes to proceed with CPD Points Calculation.
+      `);
+  }
+}
+
+
+
+
   // Fetch dynamic bot 
-  let cpdDuration = null; // Default to null until the user provides a value
   
   async function getBotResponse(userMessage, userTone = "formal") {
     try {
@@ -464,7 +519,7 @@ You are a compliance expert assessing Australian financial services CPD activiti
 
 ---
 ### **Step 3: Legislative Criteria Assessment**
-Evaluate the material against these criteria:
+Evaluate the material against these criteria ang give explanation at least 50 words:
 
 ✔️ **Is the education related to financial advice?** (Yes/No)  
 ✔️ **Does it fall within legislated CPD areas?** (Yes/No)  
@@ -477,12 +532,18 @@ Evaluate the material against these criteria:
 
 ---
 ### **Step 4: Industry Criteria Assessment**
+Industry Criteria Assessment at least 50 words:
 ✔️ **Ensure the content is educational, not promotional.** (Max 15% promotional)  
 ✔️ **Check accuracy & compliance with regulations.**  
 ✔️ **Validate presence of clear learning outcomes.**  
 
-**✅ If all criteria are met:** "Proceeding to Step 3: Content Type Confirmation."  
-**❌ If failed:** "Your submission failed to meet the following: [list failed criteria]."
+**✅ If all criteria are met:**   
+✅ Step 5: CPD Points Calculation:
+(directly show Step 5 content here)
+
+
+**❌ If failed:**   
+"Your submission failed to meet the following: [list failed criteria]."
 
 ---
 ### **Step 5: CPD Points Calculation**
@@ -492,7 +553,9 @@ Since this is a podcast (transcript-based submission), CPD points are calculated
 - 6 minutes = 0.1 CPD point  
 - 60 minutes = 1.0 CPD point  
 
-**User-provided Duration:** ${duration} minutes
+**Duration Provided:** ${cpdDuration ? `${cpdDuration} minutes` : "Not provided"}  
+✅ **Proceeding automatically to Step 6: CPD Area Allocation...**
+
 
 ---
 ### **Step 6: CPD Area Allocation**
@@ -538,8 +601,9 @@ Provide an **explanation for each allocation**.
 ---
 **CPD Accreditation Summary for [User-Provided Organisation Name]**  
 📄 **Accreditation Number:** [Generated ID]  
-📅 **Approval Date:** [Today's Date]  
-📅 **Expiry Date:** [12 Months from Today]  
+📅 **Approval Date:** ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}  
+📅 **Expiry Date:** ${new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}  
+
 
 ✅ **Summary of CPD Points:**  
 [CPD Allocation Table]  
@@ -615,6 +679,7 @@ let retryAttempts = 0; // Counter for retry attempts
 // ✅ Store the latest transcription text
 let transcriptionText = "";
 
+
 // ✅ Function to process and store transcription
 function processTranscription(transcription) {
   transcriptionText = transcription; // Store transcription globally
@@ -623,8 +688,9 @@ function processTranscription(transcription) {
   extractedSpeakers = extractSpeakerDetails(transcription);
 
   // ✅ Show the latest transcription with a "View Full Transcription" button
-  displayBotMessage(`📄 **Latest Transcription:**\n\n${transcription.substring(0, 500)}...\n\n
-  <button onclick="showFullTranscription()">📄 View Full Transcription</button>`);
+  displayBotMessage(`📄 **Latest Transcription:**\n\n${transcription.substring(0, 500)}...\n\n    `)
+  
+  // <button onclick="showFullTranscription()">📄 View Full Transcription</button>
 
   if (extractedSpeakers.length > 0) {
       let speakerList = extractedSpeakers.map(s => 
@@ -696,8 +762,8 @@ async function fetchLatestTranscriptionChunks() {
       retryAttempts = 0; // Reset retry count
 
       // ✅ Display a preview of the transcription with a button for full view
-      displayBotMessage(`📄 **Latest Transcription:**\n\n${text.substring(0, 500)}...\n\n
-      <button onclick="showFullTranscription()">📜 View Full Transcription</button>`);
+      displayBotMessage(`📄 **Latest Transcription:**\n\n${text.substring(0, 500)}...\n\n `);
+      // <button onclick="showFullTranscription()">📜 View Full Transcription</button>
 
       // ✅ Automatically send the transcription for processing
       processUserMessage(transcriptionText);
