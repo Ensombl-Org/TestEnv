@@ -91,17 +91,24 @@ h1, h2, h3 {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 20px 40px;
+  width: 100%;
+  max-width: 900px;  /* ✅ Keeps it from stretching too wide */
+  margin: 0 auto;    /* ✅ Ensures it's always centered */
+  margin-bottom: 5px;
 }
+
 
 /* ✅ Ensure logo & title align properly */
 .logo-title-container {
-  display: flex;           /* Align items in a row */
-  align-items: center;     /* Vertically center logo & text */
-  justify-content: center; /* Center the entire container */
-  gap: 12px;               /* Space between logo & text */
+  display: flex;
+  flex-direction: row;  /* ✅ Stacks the logo and title properly */
+  align-items: center;     /* ✅ Centers both elements */
+  justify-content: center;
+  text-align: center;
+  gap: 10px;                /* ✅ Reduce space between the logo and title */
   margin-top: 20px;
 }
+
 
 /* ✅ Adjust logo size */
 .hero-icon {
@@ -111,7 +118,7 @@ h1, h2, h3 {
 
 /* ✅ Adjust title spacing */
 .hero-title {
-  font-size: 2.5rem;
+  font-size: 2 rem;
   font-weight: 800;
   color: #2b2b2b;
   margin: 0;
@@ -119,18 +126,17 @@ h1, h2, h3 {
 
 
 .hero-subtitle {
+  font-family: 'Gilroy Light', sans-serif; /* ✅ Change font to Gilroy Light */
+  font-size: 14px; /* Reduce subtitle size */
+  line-height: 1.5; /* Reduce vertical spacing */
   text-align: center;  /* Ensures both lines are centered */
   max-width: 600px;    /* Optional: limit line width */
   margin: 0 auto;      /* Center the paragraph block */
-  line-height: 1.5;
   color: #555;
 }
 
 /* =========================
    📂 Sidebar Styles 
-========================= */
-/* =========================
-   📂 Sidebar Styles - Improved
 ========================= */
 .sidebar {
   position: fixed;
@@ -139,7 +145,7 @@ h1, h2, h3 {
   width: 250px; /* Sidebar width */
   height: 100vh; /* Full height */
   background-color: #ffffff !important; /* White background */
-  padding: 20px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -155,11 +161,12 @@ h1, h2, h3 {
 
 /* ✅ Sidebar "New CPD" Button */
 .sidebar .btn.new-cpd {
-  width: 100%;
+  width: auto;
   background-color: #2e7aff; /* Blue */
   color: #fff;
   font-weight: bold;
-  padding: 12px;
+  padding: 8px 12px;
+  font-size: 14px;
   text-align: center; /* Center align */
   border-radius: 8px;
   border: none;
@@ -177,7 +184,7 @@ h1, h2, h3 {
 .sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Spacing between items */
+  gap: 5px; /* Spacing between items */
   width: 100%;
   margin-top: 20px;
 }
@@ -226,14 +233,14 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 15px;
+  padding: 8px 10px;
   border-radius: 8px;
   width: 100%;
   background-color: #ffffff;
   cursor: pointer;
   transition: background 0.3s ease-in-out, box-shadow 0.2s ease-in-out;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #333;
   border: 1px solid #ddd;
@@ -371,27 +378,17 @@ body {
 =========================== */
 #chat-area {
   background-color: var(--secondary-bg-color); /*** Chat area background (white) ***/
-  /* padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #ddd;  /*** Chat area border ***/
-  /* height: 400px;           /*** Adjust height as needed ***/
-  /* overflow-y: auto;
-  display: flex;
-  flex-direction: column; */
-
-  margin: auto;
-  padding: 15px;
+  margin-top: -20px; /* ✅ Move the chat area higher */
+  padding: 10px; /* Reduce padding */
   border: 1px solid #ddd;
-  height: 600px; /* Adjust height if needed */
+  height: 550px; /* Adjust height if needed */
   border-radius: 10px;
   background: #fff;
   box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  
-  /* ✅ Set width to 90% to make it wider */
-  width: 100%;
+    width: 100%; /* ✅ Set width to 90% to make it wider */
   max-width: 100%; /* Increase the max width */
 }
 
@@ -405,15 +402,8 @@ body {
   padding: 10px;
   margin: 10px 0;
   border-radius: 6px;
-  
-    line-height: 1.5;
-  /* margin-bottom: 10px;
-  padding: 10px 15px;
-  border-radius: 10px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
   line-height: 1.5;
-  box-shadow: var(--chat-bubble-shadow); ** Change shadow if desired ** */
+
 }
 
 /* User Message Bubble */
@@ -527,7 +517,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px;
+  padding: 5px;
   background-color: #f8f9fa; /* Match the background of the chat area */
   border-radius: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional shadow for better visibility */
@@ -546,7 +536,7 @@ body {
   background-color: #f1f3f5; /* Light background like the chatbox */
   font-size: 14px;
   resize: none; /* Prevent resizing */
-  height: 50px; /* Adjust height as needed */
+  height: 40px; /* Adjust height as needed */
   outline: none;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -556,7 +546,7 @@ body {
   background-color: #207AFE;
   color: white;
   border: none;
-  padding: 10px 28px;
+  padding: 8px 20px;
   border-radius: 50px; /* Capsule shape */
   cursor: pointer;
   transition: background-color 0.3s ease;
@@ -567,4 +557,13 @@ body {
 
 .send-button:hover {
   background-color: #0056B3;
+}
+
+/* ✅ Style Footer Text */
+.footer-text {
+  font-family: 'Gilroy Light', sans-serif; /* ✅ Apply Gilroy Light */
+  font-size: 12px; /* ✅ Adjust font size */
+  color: #666; /* ✅ Slightly lighter gray for readability */
+  text-align: center; /* ✅ Center the text */
+  margin-top: 10px; /* ✅ Reduce spacing from chat area */
 }
