@@ -92,7 +92,7 @@ h1, h2, h3 {
   justify-content: center;
   text-align: center;
   width: 100%;
-  max-width: 900px;  /* ✅ Keeps it from stretching too wide */
+  max-width: 600px;  /* ✅ Keeps it from stretching too wide */
   margin: 0 auto;    /* ✅ Ensures it's always centered */
   margin-bottom: 5px;
 }
@@ -133,6 +133,15 @@ h1, h2, h3 {
   max-width: 600px;    /* Optional: limit line width */
   margin: 0 auto;      /* Center the paragraph block */
   color: #555;
+}
+
+/* ✅ Style Footer Text */
+.footer-text {
+  font-family: 'Gilroy Light', sans-serif; /* ✅ Apply Gilroy Light */
+  font-size: 12px; /* ✅ Adjust font size */
+  color: #666; /* ✅ Slightly lighter gray for readability */
+  text-align: center; /* ✅ Center the text */
+  margin-top: 10px; /* ✅ Reduce spacing from chat area */
 }
 
 /* =========================
@@ -210,7 +219,6 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  cursor: pointer;
   padding: 10px;
 }
 
@@ -219,14 +227,14 @@ h1, h2, h3 {
   width: 14px; /* Ensures chevron is small */
   height: auto;
 }
-
-/* Upload options - Hidden by default */
+/* 
+--Upload options - Hidden by default --
 .upload-options {
   display: none;
   flex-direction: column;
   gap: 10px;
   margin-top: 5px;
-}
+} */
 
 /* Ensure Upload buttons are full width */
 .sidebar-btn {
@@ -402,7 +410,7 @@ body {
   padding: 10px;
   margin: 10px 0;
   border-radius: 6px;
-  line-height: 1.5;
+  line-height: 1.2;
 
 }
 
@@ -559,11 +567,4 @@ body {
   background-color: #0056B3;
 }
 
-/* ✅ Style Footer Text */
-.footer-text {
-  font-family: 'Gilroy Light', sans-serif; /* ✅ Apply Gilroy Light */
-  font-size: 12px; /* ✅ Adjust font size */
-  color: #666; /* ✅ Slightly lighter gray for readability */
-  text-align: center; /* ✅ Center the text */
-  margin-top: 10px; /* ✅ Reduce spacing from chat area */
-}
+
