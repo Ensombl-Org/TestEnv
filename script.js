@@ -1,6 +1,6 @@
 //Jid Espenorio - Ensombl
 //Updated 07/03/2025
-//Variables v1.9.1
+//Variables v1.9
 //Test
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -184,6 +184,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   });
 
+  // ✅ Fix: Ensure "Upcoming Presentation" allows selecting all file types
+  const presentationUpload = document.getElementById("presentation-upload");
+  if (presentationUpload) {
+      presentationUpload.addEventListener("click", function() {
+          this.setAttribute("accept", "*/*"); // Allows all files
+          console.log("📂 'Upcoming Presentation' now allows all file types.");
+      });
+  }
+
   // ✅ Ensure chat area exists before calling `startNewChat`
   const chatArea = document.getElementById("chat-area");
   if (chatArea) {
@@ -194,21 +203,21 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+// Removing later
+// function toggleUploadMenu() {
+//   const uploadOptions = document.getElementById("upload-options");
+//   const uploadArrow = document.getElementById("upload-arrow");
 
-function toggleUploadMenu() {
-  const uploadOptions = document.getElementById("upload-options");
-  const uploadArrow = document.getElementById("upload-arrow");
-
-  if (uploadOptions.style.display === "none" || uploadOptions.style.display === "") {
-    uploadOptions.style.display = "block";
-    uploadArrow.classList.remove("fa-chevron-down");
-    uploadArrow.classList.add("fa-chevron-up");
-  } else {
-    uploadOptions.style.display = "none";
-    uploadArrow.classList.remove("fa-chevron-up");
-    uploadArrow.classList.add("fa-chevron-down");
-  }
-}
+//   if (uploadOptions.style.display === "none" || uploadOptions.style.display === "") {
+//     uploadOptions.style.display = "block";
+//     uploadArrow.classList.remove("fa-chevron-down");
+//     uploadArrow.classList.add("fa-chevron-up");
+//   } else {
+//     uploadOptions.style.display = "none";
+//     uploadArrow.classList.remove("fa-chevron-up");
+//     uploadArrow.classList.add("fa-chevron-down");
+//   }
+// }
 
 
   
@@ -384,7 +393,7 @@ async function handleFileUpload(event, fileType) {
   const allowedExtensions = {
     video: [".mp4", ".avi", ".mov", ".mkv", ".mp3", ".wav", ".ogg"],
     article: [".pdf", ".doc", ".docx", ".txt"],
-    presentation: [".ppt", ".pptx", ".pdf"],
+    presentation: [".ppt", ".pptx", ".pdf", ".doc", ".docx", ".txt"],
   };
 
   const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
@@ -405,7 +414,7 @@ async function handleFileUpload(event, fileType) {
   try {
     displayBotMessage(`Uploading <strong> ${file.name} </strong>`);
 
-    // ✅ Initialize Azure Blob Storage Client
+     // ✅ Initialize Azure Blob Storage Client
     const blobServiceClient = new AzureStorageBlob.BlobServiceClient(`${storageAccountUrl}${sasToken}`);
     const containerClient = blobServiceClient.getContainerClient(containerName);
     const blockBlobClient = containerClient.getBlockBlobClient(file.name);
@@ -426,13 +435,30 @@ async function handleFileUpload(event, fileType) {
     // ✅ Store the latest uploaded file URL
     latestUploadedFileUrl = blockBlobClient.url;
 
-    // Start transcription automatically (ADF approach)
-    startTranscription();
 
-  } catch (error) {
-    console.error("File upload error:", error);
-    displayBotMessage("❌ An error occurred during the upload. Please try again.");
-  }
+ // ✅ Detect File Type & Route to the Right Process
+ if (fileType === "video") {
+  startTranscription();  // 🔹 Transcribe audio/video files only
+} else if (fileType === "presentation") {
+  processPresentationFile(file.name);  // 🔹 Handle presentations separately
+} else {
+  displayBotMessage(`✅ "${file.name}" uploaded successfully.`);
+}
+
+} catch (error) {
+console.error("File upload error:", error);
+displayBotMessage("❌ An error occurred during the upload. Please try again.");
+}
+}
+
+// ✅ Function to Handle Presentation Files (No Transcription)
+function processPresentationFile(fileName) {
+  displayBotMessage(`✅ **"${fileName}" uploaded successfully as a Presentation.**`);
+
+  // 🔹 Future Enhancements: 
+  // - Extract text from slides
+  // - Analyze content for CPD accreditation
+  // - Summarize key points
 }
 
 // Fetch audio file as Blob
@@ -486,7 +512,6 @@ function displayCPDCalculation() {
 
 
 
-
   // Fetch dynamic bot 
   
   async function getBotResponse(userMessage, userTone = "formal") {
@@ -506,7 +531,9 @@ You are a compliance expert assessing Australian financial services CPD activiti
 
 ---
 ### **Step 1: Submission Confirmation**
+- If a **podcast/audio file** is uploaded, **proceed automatically to transcript**.
 - If a transcript is uploaded, **proceed automatically** to Step 2.
+
 
 ---
 <b>Step 2: Expert Credentials Assessment</b>
@@ -532,12 +559,13 @@ Evaluate the material against these criteria ang give explanation at least 50 wo
 
 ---
 ### **Step 4: Industry Criteria Assessment**
-Industry Criteria Assessment at least 50 words:
 ✔️ **Ensure the content is educational, not promotional.** (Max 15% promotional)  
 ✔️ **Check accuracy & compliance with regulations.**  
-✔️ **Validate presence of clear learning outcomes.**  
+✔️ **Validate presence of clear learning outcomes.**  at least 50 words for Clear learning outcomes.
 
-**✅ If all criteria are met:**   
+**✅ If all criteria are met:**    "What is the duration of the podcast in minutes? type [time] minutes (e.g. 30 minutes)."  
+➡️ Ensure the user types their response in the format: [time] minutes (e.g. 30 minutes).
+
 ✅ Step 5: CPD Points Calculation:
 (directly show Step 5 content here)
 
@@ -574,15 +602,20 @@ Provide an **explanation for each allocation**.
 
 ---
 ### **Step 7: CPD Assessment Questions**
-- Create **1 multiple-choice question per 0.2 CPD points**.
-- Format as follows:
+- For every **0.2 CPD points**, generate **one multiple-choice question**.
+- Each question should include:
+  - A **clear question statement** related to the CPD content.
+  - **Three possible answer choices** (A, B, C).
+  - **Indicate the correct answer** clearly.
+- Format example:
 
-**📌 Example:**
-**Question 1 (Technical Competence)**  
-*What is a key reason contrarian investing can be effective in volatile markets?*  
-🔘 A) It follows the wisdom of the crowd  
-✅ B) It seeks to capitalise on market overreactions and mispricing   
-🔘 C) It involves shifting portfolios entirely to cash during downturns  
+  **Question 1 (Technical Competence)**
+  *What strategy is emphasized for handling market volatility in the podcast?*
+  
+  - 🟣 A) Short-term trading strategies  
+  - ✅ B) Long-term contrarian investing *(correct answer)*  
+  - 🟣 C) High-frequency trading
+
 
 ---
 ### **Step 8: Finalisation & CPD Accreditation Document**
@@ -812,7 +845,7 @@ function displayTranscriptionButton() {
 async function askUserForDuration() {
     return new Promise((resolve) => {
         // Display bot message asking for duration
-        displayBotMessage("What is the duration in minutes?");
+        displayBotMessage("What is the duration in minutes? Type [time] minutes (e.g. 30 minutes)");
   
         // Get the message input box
         const messageBox = document.getElementById("message-box");
