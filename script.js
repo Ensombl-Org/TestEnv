@@ -1,6 +1,6 @@
 //Jid Espenorio - Ensombl
-//Updated 07/03/2025
-//Variables v1.9
+//Updated 19/03/2025
+//Variables v2.0
 //Test
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -145,7 +145,8 @@ function displayUserMessage(message) {
 function sendMessage() {
   const messageBox = document.getElementById("message-box");
   if (!messageBox) {
-    console.error("❌ Error: 'message-box' not found in DOM.");
+      console.error("❌ Error: 'message-box' not found in DOM.");
+      displayBotMessage("⚠️ Internal error: Message box missing.");
       return;
   }
 
@@ -160,7 +161,10 @@ function sendMessage() {
 }
 
 
+
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ DOM fully loaded. Initializing event listeners...");
+
   // List of elements and their event handlers
   const elements = [
       { id: "video-upload", event: "change", handler: (event) => handleFileUpload(event, "video") },
@@ -184,14 +188,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
   });
 
-  // ✅ Fix: Ensure "Upcoming Presentation" allows selecting all file types
-  const presentationUpload = document.getElementById("presentation-upload");
-  if (presentationUpload) {
-      presentationUpload.addEventListener("click", function() {
-          this.setAttribute("accept", "*/*"); // Allows all files
-          console.log("📂 'Upcoming Presentation' now allows all file types.");
-      });
+  // ✅ Ensure the Send button works like Enter key
+  function attachSendButtonListener() {
+      const sendButton = document.getElementById("send-button");
+      if (sendButton) {
+          sendButton.addEventListener("click", () => sendMessage());
+          console.log("✅ Send button event attached!");
+      } else {
+          console.warn("⚠️ Send button not found. Retrying in 500ms...");
+          setTimeout(attachSendButtonListener, 500); // Retry in case button is loaded later
+      }
   }
+  attachSendButtonListener(); // Start checking
 
   // ✅ Ensure chat area exists before calling `startNewChat`
   const chatArea = document.getElementById("chat-area");
@@ -203,25 +211,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// Removing later
-// function toggleUploadMenu() {
-//   const uploadOptions = document.getElementById("upload-options");
-//   const uploadArrow = document.getElementById("upload-arrow");
-
-//   if (uploadOptions.style.display === "none" || uploadOptions.style.display === "") {
-//     uploadOptions.style.display = "block";
-//     uploadArrow.classList.remove("fa-chevron-down");
-//     uploadArrow.classList.add("fa-chevron-up");
-//   } else {
-//     uploadOptions.style.display = "none";
-//     uploadArrow.classList.remove("fa-chevron-up");
-//     uploadArrow.classList.add("fa-chevron-down");
-//   }
-// }
-
-
-  
-  
  // Start a new chat
   function startNewChat() {
     userName = "";
