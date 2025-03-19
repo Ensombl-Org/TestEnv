@@ -1,6 +1,6 @@
 //Jid Espenorio - Ensombl
-//Updated 19/03/2025
-//Variables v2.0
+//Updated 07/03/2025
+//Variables v1.9
 //Test
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -380,7 +380,7 @@ async function handleFileUpload(event, fileType) {
   }
 
   const allowedExtensions = {
-    video: [".mp4", ".avi", ".mov", ".mkv", ".mp3", ".wav", ".ogg"],
+    video: [".mp4", ".avi", ".mov", ".mkv", ".mp3", ".wav", ".ogg", ".m4a"],
     article: [".pdf", ".doc", ".docx", ".txt"],
     presentation: [".ppt", ".pptx", ".pdf", ".doc", ".docx", ".txt"],
   };
