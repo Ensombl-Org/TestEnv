@@ -444,11 +444,59 @@ displayBotMessage("❌ An error occurred during the upload. Please try again.");
 function processPresentationFile(fileName) {
   displayBotMessage(`✅ **"${fileName}" uploaded successfully as a Presentation.**`);
 
-  // 🔹 Future Enhancements: 
-  // - Extract text from slides
-  // - Analyze content for CPD accreditation
-  // - Summarize key points
+  // 🚀 Now, automatically attempt to fetch extracted text
+  setTimeout(() => fetchExtractedText(fileName), 5000); // Delay retrieval to allow processing
 }
+
+// ✅ Fetch Extracted Text from Azure Storage (for Presentations)
+async function fetchExtractedText(fileName) {
+    displayBotMessage(`📂 Fetching extracted text from: ${fileName}`);
+
+    // ✅ Ensure correct extracted text file path
+    const textFileName = encodeURIComponent(fileName) + ".txt";
+    const extractedTextUrl = `${storageAccountUrl}/presentations/extractedtext/${textFileName}${sasToken.startsWith("?") ? "" : "?"}${sasToken}`;
+
+
+    console.log("🔍 Checking for extracted text at:", extractedTextUrl);
+
+    try {
+        const response = await fetch(extractedTextUrl, {
+            method: "GET",
+            headers: {
+                "x-ms-version": "2021-06-08",
+                "Content-Type": "text/plain"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`⚠️ Fetch failed: ${response.status} - ${response.statusText}`);
+        }
+
+        const extractedText = await response.text();
+        
+        // ✅ Display extracted text preview
+        displayBotMessage(`📄 **Extracted Text Preview:**\n\n${extractedText.substring(0, 500)}...`);
+
+        // ✅ Process extracted text for CPD evaluation
+        processCPDText(extractedText);
+
+    } catch (error) {
+        console.error("❌ Fetch Error:", error);
+        displayBotMessage("⚠️ **Failed to load extracted text. Retrying in 10 seconds...**");
+        setTimeout(() => fetchExtractedText(fileName), 30000);
+    }
+}
+
+// ✅ Process Extracted Text for CPD Accreditation
+async function processCPDText(extractedText) {
+    displayBotMessage(`✅ **Processing CPD Accreditation for extracted text...**`);
+
+    // Send extracted text to CPD system (your bot logic)
+    let botResponse = await getBotResponse(extractedText);
+    displayBotMessage(botResponse);
+}
+
+
 
 // Fetch audio file as Blob
 async function fetchAudioBlob(fileUrl) {
